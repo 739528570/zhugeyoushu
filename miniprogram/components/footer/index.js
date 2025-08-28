@@ -20,8 +20,13 @@ Component({
    */
   methods: {
     onChange(event) {
-      // event.detail 的值为当前选中项的索引
-      this.setData({ active: event.detail });
+      wx.navigateTo({
+        url: event.detail,
+      })
     },
-  }
+    onLoad: function(options) {
+      // 页面创建时执行
+      console.log('**', options)
+    },
+  },
 })
