@@ -1,6 +1,6 @@
 {
-  "navigationBarTitleText": "基础能力",
+  "navigationBarTitleText": "Home",
   "usingComponents": {
-    "cloud-tip-modal": "/components/cloudTipModal/index"
+    "footer": "/components/footer/index"
   }
 }
