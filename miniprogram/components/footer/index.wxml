@@ -1,6 +1,6 @@
 <!--components/footer/index.wxml-->
-<van-tabbar active="{{ active }}" bind:change="onChange">
-  <van-tabbar-item name="pages/home/index" icon="home-o">首页</van-tabbar-item>
-  <van-tabbar-item name="pages/home/index" icon="search">收藏</van-tabbar-item>
-  <van-tabbar-item name="pages/username/index" icon="setting-o">我的</van-tabbar-item>
+<van-tabbar active="{{ active }}">
+  <van-tabbar-item name="index" url="/pages/index/index" icon="home-o"></van-tabbar-item>
+  <!-- <van-tabbar-item name="pages/home/search" icon="search">收藏</van-tabbar-item> -->
+  <van-tabbar-item name="username" url="/pages/username/index" icon="setting-o"></van-tabbar-item>
 </van-tabbar>

@@ -3,4 +3,6 @@ Page({
   data: {
 
   },
+  onLoad(options){
+  }
 });
