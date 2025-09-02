@@ -1,6 +1,9 @@
 {
-  "navigationBarTitleText": "Home",
+  "navigationBarTitleText": "书架",
   "usingComponents": {
-    "footer": "/components/footer/index"
+    "footer": "/components/footer/index",
+    "van-grid": "@vant/weapp/grid/index",
+    "van-grid-item": "@vant/weapp/grid-item/index",
+    "van-nav-bar": "@vant/weapp/nav-bar/index"
   }
 }

@@ -78,5 +78,6 @@
   "packOptions": {
     "ignore": [],
     "include": []
-  }
+  },
+  "libVersion": "3.9.0"
 }

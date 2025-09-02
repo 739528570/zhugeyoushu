@@ -1,5 +1,6 @@
 {
-  "navigationBarTitleText": "Username",
+  "navigationBarTitleText": "书签",
+  "homeButton": false,
   "usingComponents": {
     "footer": "/components/footer/index"
   }

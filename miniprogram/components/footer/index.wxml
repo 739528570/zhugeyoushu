@@ -1,6 +1,13 @@
 <!--components/footer/index.wxml-->
-<van-tabbar active="{{ active }}">
-  <van-tabbar-item name="index" url="/pages/index/index" icon="home-o"></van-tabbar-item>
-  <!-- <van-tabbar-item name="pages/home/search" icon="search">收藏</van-tabbar-item> -->
-  <van-tabbar-item name="username" url="/pages/username/index" icon="setting-o"></van-tabbar-item>
-</van-tabbar>
+<view>
+  <van-tabbar active="{{ active }}">
+    <van-tabbar-item name="index" url="/pages/index/index">
+      <image slot="icon" src="{{ icon.bookshelf }}" mode="aspectFit" style="width: 30px; height: 18px;" />
+      <image slot="icon-active" src="{{ icon.bookshelfactive }}" mode="aspectFit" style="width: 30px; height: 18px;" />
+    </van-tabbar-item>
+    <van-tabbar-item name="bookmark" url="/pages/bookmark/index">
+      <image slot="icon" src="{{ icon.bookmark }}" mode="aspectFit" style="width: 30px; height: 18px;" />
+      <image slot="icon-active" src="{{ icon.bookmarkactive }}" mode="aspectFit" style="width: 30px; height: 18px;" />
+    </van-tabbar-item>
+  </van-tabbar>
+</view>
