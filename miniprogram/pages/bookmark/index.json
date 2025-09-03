@@ -2,6 +2,8 @@
   "navigationBarTitleText": "书签",
   "homeButton": false,
   "usingComponents": {
-    "footer": "/components/footer/index"
+    "footer": "/components/footer/index",
+    "van-grid-item": "@vant/weapp/grid-item/index",
+    "van-nav-bar": "@vant/weapp/nav-bar/index"
   }
 }
