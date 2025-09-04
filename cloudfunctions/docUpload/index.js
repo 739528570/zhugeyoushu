@@ -1,71 +1,19 @@
 // 文档上传云函数：处理文档上传、格式解析和元数据存储
 const DocOperations = require('../database/docOperations')
-const cloud = require('wx-server-sdk')
-cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 exports.main = async (event, context) => {
   try {
-    const { name, path, size } = event
-    const wxContext = cloud.getWXContext()
-    const openid = wxContext.OPENID
-    const fileSystem = wx.getFileSystemManager()
-    const tempFile = fileSystem.getFileInfo({
-      filePath: path
-    });
-    console.log(tempFile)
+    // const { openid, fileName, fileSize, fileType, fileUrl } = event
+    console.log(event)
 
-    // 1. 验证参数
-    // if (!openid || !fileBuffer || !fileName || !fileType) {
-    //   return { code: 400, message: '参数缺失', success: false }
-    // }
-    
-    // 2. 提取文件元数据
-    // const fileExt = fileName.split('.').pop().toLowerCase()
-    // const fileSize = Buffer.byteLength(fileBuffer) / 1024 // KB
-    // const timestamp = Date.now()
-    // const cloudPath = `documents/${openid}/${timestamp}-${fileName}`
-    
-    // 3. 上传文件到云存储
-    // const uploadResult = await cloud.uploadFile({
-    //   cloudPath,
-    //   fileContent: Buffer.from(fileBuffer, 'base64')
-    // })
-    // const uploadResult = await wx.cloud.uploadFile({
-    //   cloudPath, // 上传至云端的路径
-    //   filePath: '/miniprogram/template', // 小程序临时文件路径
-    //   success: res => {
-    //     // 返回文件 ID
-    //     console.log(res)
-    //   },
-    //   fail: console.error
-    // })
-    
-    // if (!uploadResult.fileID) {
-    //   return { code: 500, message: '文件上传失败', success: false }
-    // }
-    
-    // 4. 保存文档信息到数据库
-    // const docResult = await db.collection('Document').add({
-    //   data: {
-    //     openid,
-    //     title: fileName,
-    //     type: fileType.toUpperCase(),
-    //     size: Math.round(fileSize * 100) / 100,
-    //     createTime: new Date(),
-    //     updateTime: new Date(),
-    //     lastReadPos: 0,
-    //     fileUrl: uploadResult.fileID,
-    //     coverUrl: '' // 可后续添加封面生成逻辑
-    //   }
-    // })
     // const docResult = await DocOperations.addDoc({
-    //   openid: event.openid,
+    //   openid: openid,
     //   title: fileName,
-    //   type: fileType.toUpperCase(),
-    //   size: Math.round(fileSize * 100) / 100,
-    //   fileUrl: uploadResult.fileID
+    //   type: fileType,
+    //   size: fileSize,
+    //   fileUrl: fileUrl
     // })
-    
+    // console.log(docResult)
     return {
       code: 200,
       message: '上传成功',

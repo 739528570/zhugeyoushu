@@ -1,0 +1,15 @@
+<!--components/upload/index.wxml-->
+<van-uploader
+ max-count="1"
+ accept="file"
+ max-size="52428800"
+ extension="{{ supportFormats }}"
+ disabled="{{ showProgress }}"
+ use-before-read
+ bind:before-read="chooseFile"
+ bind:after-read="uploadToCloud"
+>
+	<van-icon wx:if="{{ !showProgress }}" name="plus" size="50px" />
+	<van-loading wx:if="{{ showProgress }}" type="spinner" />
+</van-uploader>
+
