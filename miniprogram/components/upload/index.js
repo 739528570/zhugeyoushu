@@ -41,57 +41,57 @@ Component({
         type: 'file',
         success(res) {
           console.log(res)
-          // const file = event.detail.file
-          // const {
-          //   name,
-          //   size,
-          //   url
-          // } = file
-          // // 1. 验证文件大小（不超过50MB）
-          // if (size > 50 * 1024 * 1024) {
-          //   wx.showToast({
-          //     title: '文件过大（最大50MB）',
-          //     icon: 'none',
-          //     duration: 2000
-          //   })
-          //   return
-          // }
+          const file = res.tempFiles[0]
+          const {
+            name,
+            size,
+          } = file
+          // 1. 验证文件大小（不超过50MB）
+          if (size > 50 * 1024 * 1024) {
+            wx.showToast({
+              title: '文件过大（最大50MB）',
+              icon: 'none',
+              duration: 2000
+            })
+            return
+          }
 
-          // // 2. 验证文件格式
-          // const fileExt = name.split('.').pop().toLowerCase()
-          // if (!this.data.supportFormats.includes(fileExt)) {
-          //   wx.showToast({
-          //     title: '不支持的文件格式',
-          //     icon: 'none',
-          //     duration: 2000
-          //   })
-          //   return
-          // }
-          // this.setData({
-          //   showProgress: true,
-          //   uploadFileName: name,
-          //   progress: 0,
-          //   uploadComplete: false,
-          //   uploadSuccess: false,
-          //   resultMessage: ''
-          // })
+          // 2. 验证文件格式
+          const fileExt = name.split('.').pop().toLowerCase()
+          if (!this.data.supportFormats.includes(fileExt)) {
+            wx.showToast({
+              title: '不支持的文件格式',
+              icon: 'none',
+              duration: 2000
+            })
+            return
+          }
+          this.setData({
+            showProgress: true,
+            uploadFileName: name,
+            progress: 0,
+            uploadComplete: false,
+            uploadSuccess: false,
+            resultMessage: ''
+          })
+          this.uploadToCloud(file)
+
         }
       })
-
       // event.detail.callback(true)
     },
 
     // 上传到云存储并调用云函数记录
-    async uploadToCloud(event) {
+    async uploadToCloud(file) {
       const info = await wx.cloud.callFunction({
         name: 'getWXContext',
       })
       const openid = info.result?.openid
-      const file = event.detail.file
+      // const file = event.detail.file
       console.log('uploadToCloud', file, openid)
 
       const {
-        url,
+        path,
         name,
         size
       } = file
@@ -116,7 +116,7 @@ Component({
       // 2. 创建上传任务
       const uploadTask = wx.cloud.uploadFile({
         cloudPath,
-        filePath: url,
+        filePath: path,
         success: res => {
           console.log('success', {
             openid,

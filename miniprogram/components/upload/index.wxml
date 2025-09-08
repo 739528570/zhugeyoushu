@@ -1,5 +1,5 @@
 <!--components/upload/index.wxml-->
-<view bind:onclick="chooseFile" style="width: 50px; height: 50px">
+<view bind:tap="chooseFile" style="width: 50px; height: 50px">
 	<van-icon
 	 wx:if="{{ !showProgress }}"
 	 name="plus"
@@ -8,7 +8,7 @@
 	/>
 	<van-circle wx:if="{{ showProgress }}" value="{{ progress }}" text="{{ progress }}%" />
 </view>
-<van-uploader
+<!-- <van-uploader
  max-count="1"
  accept="file"
  max-size="52428800"
@@ -20,5 +20,5 @@
 >
 	<van-icon wx:if="{{ !showProgress }}" name="plus" size="50px" />
 	<van-circle wx:if="{{ showProgress }}" value="{{ progress }}" text="{{ progress }}%" />
-</van-uploader>
+</van-uploader> -->
 
