@@ -1,10 +1,19 @@
 <!--index.wxml-->
 <view class="container">
-  <van-nav-bar title="书架" placeholder bind:click-left="handleUpload" />
-  <van-search value="{{ value }}" placeholder="请输入搜索关键词" />
-  <upload />
-  <!-- <van-grid gutter="{{ 10 }}">
-    <van-grid-item icon="photo-o" text="文字" wx:for="{{ 8 }}" />
-  </van-grid> -->
-  <footer active="index" />
+	<van-nav-bar title="书架" placeholder bind:click-left="handleUpload" />
+	<van-search value="{{ value }}" placeholder="请输入搜索关键词" />
+	<van-grid gutter="{{ 10 }}" wx:if="{{ !loading }}">
+		<van-grid-item use-slot>
+			<upload bind:onOk="getList" />
+		</van-grid-item>
+		<van-grid-item
+		 icon="photo-o"
+		 text="{{item.title}}"
+		 wx:for="{{ list }}"
+		 wx:key="_id"
+		/>
+	</van-grid>
+	<van-loading type="spinner" wx:if="{{ loading }}" />
+	<footer active="index" />
 </view>
+

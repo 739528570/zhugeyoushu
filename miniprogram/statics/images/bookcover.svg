@@ -1,0 +1,44 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- 浅蓝色渐变背景 -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E6F0FF" />
+      <stop offset="100%" stop-color="#D4E5FF" />
+    </linearGradient>
+    <linearGradient id="bookGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D7C1A9" />
+      <stop offset="100%" stop-color="#8B6B4F" />
+    </linearGradient>
+  </defs>
+
+  <!-- 背景矩形 -->
+  <rect width="128" height="128" fill="url(#bgGradient)" rx="10" />
+
+  <!-- 书本主体 -->
+  <g transform="translate(34, 24)">
+    <!-- 书脊 -->
+    <rect x="45" y="5" width="15" height="75" fill="#8B6B4F" rx="2" />
+    
+    <!-- 封面 -->
+    <rect x="10" y="5" width="60" height="75" fill="url(#bookGradient)" rx="2" />
+    
+    <!-- 内页线条 -->
+    <line x1="25" y1="20" x2="55" y2="20" stroke="#FFFFFF" stroke-width="0.5" />
+    <line x1="25" y1="25" x2="55" y2="25" stroke="#F0F0F0" stroke-width="0.5" />
+    <line x1="25" y1="30" x2="55" y2="30" stroke="#FFFFFF" stroke-width="0.5" />
+    <line x1="25" y1="35" x2="55" y2="35" stroke="#F0F0F0" stroke-width="0.5" />
+    <line x1="25" y1="40" x2="55" y2="40" stroke="#FFFFFF" stroke-width="0.5" />
+    
+    <!-- 弧形书顶 -->
+    <path d="M10,5 Q35,-2 70,5" stroke="#8B6B4F" stroke-width="2" fill="none" />
+  </g>
+
+  <!-- 星星装饰 -->
+  <g fill="#FFFFFF">
+    <polygon points="80,30 82,35 87,35 83,38 85,43 80,40 75,43 77,38 73,35 78,35" />
+    <polygon points="40,90 42,95 47,95 43,98 45,103 40,100 35,103 37,98 33,95 38,95" />
+    <polygon points="100,85 101,88 104,88 102,90 103,93 100,91 97,93 98,90 96,88 99,88" />
+    <polygon points="90,110 91,113 94,113 92,115 93,118 90,116 87,118 88,115 86,113 89,113" />
+    <polygon points="110,50 111,53 114,53 112,55 113,58 110,56 107,58 108,55 106,53 109,53" />
+  </g>
+</svg>

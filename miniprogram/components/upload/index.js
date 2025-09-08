@@ -35,49 +35,60 @@ Component({
    */
   methods: {
     // 选择文件
-    chooseFile(event) {
-      const file = event.detail.file
-      const {
-        name,
-        size
-      } = file
+    async chooseFile(event) {
+      wx.chooseMessageFile({
+        count: 1,
+        type: 'file',
+        success(res) {
+          console.log(res)
+          // const file = event.detail.file
+          // const {
+          //   name,
+          //   size,
+          //   url
+          // } = file
+          // // 1. 验证文件大小（不超过50MB）
+          // if (size > 50 * 1024 * 1024) {
+          //   wx.showToast({
+          //     title: '文件过大（最大50MB）',
+          //     icon: 'none',
+          //     duration: 2000
+          //   })
+          //   return
+          // }
 
-      // 1. 验证文件大小（不超过50MB）
-      if (size > 50 * 1024 * 1024) {
-        wx.showToast({
-          title: '文件过大（最大50MB）',
-          icon: 'none',
-          duration: 2000
-        })
-        return
-      }
-
-      // 2. 验证文件格式
-      const fileExt = name.split('.').pop().toLowerCase()
-      if (!this.data.supportFormats.includes(fileExt)) {
-        wx.showToast({
-          title: '不支持的文件格式',
-          icon: 'none',
-          duration: 2000
-        })
-        return
-      }
-      this.setData({
-        showProgress: true,
-        uploadFileName: name,
-        progress: 0,
-        uploadComplete: false,
-        uploadSuccess: false,
-        resultMessage: ''
+          // // 2. 验证文件格式
+          // const fileExt = name.split('.').pop().toLowerCase()
+          // if (!this.data.supportFormats.includes(fileExt)) {
+          //   wx.showToast({
+          //     title: '不支持的文件格式',
+          //     icon: 'none',
+          //     duration: 2000
+          //   })
+          //   return
+          // }
+          // this.setData({
+          //   showProgress: true,
+          //   uploadFileName: name,
+          //   progress: 0,
+          //   uploadComplete: false,
+          //   uploadSuccess: false,
+          //   resultMessage: ''
+          // })
+        }
       })
 
-      event.detail.callback(true)
+      // event.detail.callback(true)
     },
 
     // 上传到云存储并调用云函数记录
-    uploadToCloud(event) {
+    async uploadToCloud(event) {
+      const info = await wx.cloud.callFunction({
+        name: 'getWXContext',
+      })
+      const openid = info.result?.openid
       const file = event.detail.file
-      console.log('uploadToCloud', file)
+      console.log('uploadToCloud', file, openid)
 
       const {
         url,
@@ -87,82 +98,100 @@ Component({
 
 
       const fileExt = name.split('.').pop().toLowerCase()
-      // if (!openid) {
-      //   wx.showToast({
-      //     title: '用户信息获取失败',
-      //     icon: 'none',
-      //     duration: 2000
-      //   })
-      //   this.setData({
-      //     showProgress: false
-      //   })
-      //   return
-      // }
+      const fileName = name.split('.').shift()
+      if (!openid) {
+        wx.showToast({
+          title: '用户信息获取失败',
+          icon: 'none',
+          duration: 2000
+        })
+        this.setData({
+          showProgress: false
+        })
+        return
+      }
 
       // 1. 生成云存储路径
-      const cloudPath = `documents/${Date.now()}-${name}`
-
-      console.log('uploadToCloud -- start', url, cloudPath)
-
+      const cloudPath = `documents/${openid}/${Date.now()}-${fileName}`
       // 2. 创建上传任务
       const uploadTask = wx.cloud.uploadFile({
         cloudPath,
-        fileContent: url,
+        filePath: url,
+        success: res => {
+          console.log('success', {
+            openid,
+            fileUrl: res.fileID,
+            fileName: fileName,
+            fileType: fileExt.toUpperCase(),
+            fileSize: size
+          })
+          wx.cloud.callFunction({
+            name: 'docUpload',
+            data: {
+              openid,
+              fileUrl: res.fileID,
+              fileName: fileName,
+              fileType: fileExt.toUpperCase(),
+              fileSize: size
+            }
+          }).then(docResult => {
+            // 处理云函数返回结果
+            const {
+              code
+            } = docResult.result
+            console.log('wx.cloud.callFunction', docResult)
+            if (code === 200) {
+              this.setData({
+                showProgress: false,
+                uploadComplete: true,
+                uploadSuccess: true,
+              })
+              this.triggerEvent('onOk', {}, {});
+            } else {
+              this.setData({
+                showProgress: false,
+                uploadComplete: true,
+                uploadSuccess: false,
+              })
+            }
+          }).catch(err => {
+            console.error('上传失败:', err)
+            this.setData({
+              showProgress: false,
+              uploadComplete: true,
+              uploadSuccess: false,
+            })
+            wx.showToast({
+              title: '上传失败，请稍后重试',
+              icon: 'none',
+              duration: 2000
+            })
+          })
+        },
         fail: (err) => {
-          console.log('fail', err)
-
+          console.error('wx.cloud.uploadFile fail', err)
+          this.setData({
+            showProgress: false,
+            uploadComplete: true,
+            uploadSuccess: false,
+          })
+          wx.showToast({
+            title: '上传失败，请稍后重试',
+            icon: 'none',
+            duration: 2000
+          })
         },
       })
 
       // 保存任务对象用于取消上传
-      // this.setData({
-      //   uploadTask
-      // })
-
-      // 3. 等待上传完成
-      // uploadTask.then(res => {
-      //   console.log('uploadTask', res)
-      //   // 上传成功，调用云函数记录文档信息
-      //   return wx.cloud.callFunction({
-      //     name: 'docUpload',
-      //     data: {
-      //       // openid,
-      //       fileUrl: res.fileID,
-      //       fileName: name,
-      //       fileType: fileExt.toUpperCase(),
-      //       fileSize: size
-      //     }
-      //   })
-      // }).then(docResult => {
-      //   // 处理云函数返回结果
-      //   console.log('then', res)
-      //   const {
-      //     code,
-      //     data,
-      //     message
-      //   } = docResult.result
-
-      //   if (code === 200) {
-      //     this.setData({
-      //       uploadComplete: true,
-      //       uploadSuccess: true,
-      //       resultMessage: `文档已保存，可在"书架"中查看\nID: ${data.docId}`
-      //     })
-      //   } else {
-      //     this.setData({
-      //       uploadComplete: true,
-      //       uploadSuccess: false,
-      //       resultMessage: `保存文档信息失败: ${message}`
-      //     })
-      //   }
-      // }).catch(err => {
-      //   console.error('上传失败:', err)
-      //   this.setData({
-      //     uploadComplete: true,
-      //     uploadSuccess: false,
-      //     resultMessage: `上传失败: ${err.message || '未知错误'}`
-      //   })
-      // })
+      this.setData({
+        uploadTask
+      })
+      uploadTask.onProgressUpdate((res) => {
+        this.setData({
+          progress: res.progress
+        })
+      });
     },
 
     // 取消上传

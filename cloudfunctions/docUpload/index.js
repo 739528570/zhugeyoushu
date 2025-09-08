@@ -3,24 +3,24 @@ const DocOperations = require('../database/docOperations')
 
 exports.main = async (event, context) => {
   try {
-    // const { openid, fileName, fileSize, fileType, fileUrl } = event
+    const { openid, fileName, fileSize, fileType, fileUrl } = event
     console.log(event)
 
-    // const docResult = await DocOperations.addDoc({
-    //   openid: openid,
-    //   title: fileName,
-    //   type: fileType,
-    //   size: fileSize,
-    //   fileUrl: fileUrl
-    // })
-    // console.log(docResult)
+    const docResult = await DocOperations.addDoc({
+      openid: openid,
+      title: fileName,
+      type: fileType,
+      size: fileSize,
+      fileUrl: fileUrl
+    })
+    console.log(docResult)
     return {
       code: 200,
       message: '上传成功',
-      data: {
-        // docId: docResult._id,
-        // fileUrl: uploadResult.fileID
-      },
+      // data: {
+      //   docId: docResult._id,
+      //   fileUrl: uploadResult.fileID
+      // },
       success: true
     }
   } catch (err) {
