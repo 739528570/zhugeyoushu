@@ -36,6 +36,8 @@ Component({
   methods: {
     // 选择文件
     async chooseFile(event) {
+      if (this.data.showProgress) return
+      const that = this
       wx.chooseMessageFile({
         count: 1,
         type: 'file',
@@ -58,7 +60,7 @@ Component({
 
           // 2. 验证文件格式
           const fileExt = name.split('.').pop().toLowerCase()
-          if (!this.data.supportFormats.includes(fileExt)) {
+          if (!that.data.supportFormats.includes(fileExt)) {
             wx.showToast({
               title: '不支持的文件格式',
               icon: 'none',
@@ -66,7 +68,7 @@ Component({
             })
             return
           }
-          this.setData({
+          that.setData({
             showProgress: true,
             uploadFileName: name,
             progress: 0,
@@ -74,8 +76,7 @@ Component({
             uploadSuccess: false,
             resultMessage: ''
           })
-          this.uploadToCloud(file)
-
+          that.uploadToCloud(file)
         }
       })
       // event.detail.callback(true)
@@ -83,6 +84,7 @@ Component({
 
     // 上传到云存储并调用云函数记录
     async uploadToCloud(file) {
+      const that = this;
       const info = await wx.cloud.callFunction({
         name: 'getWXContext',
       })
@@ -105,7 +107,7 @@ Component({
           icon: 'none',
           duration: 2000
         })
-        this.setData({
+        that.setData({
           showProgress: false
         })
         return
@@ -141,14 +143,14 @@ Component({
             } = docResult.result
             console.log('wx.cloud.callFunction', docResult)
             if (code === 200) {
-              this.setData({
+              that.setData({
                 showProgress: false,
                 uploadComplete: true,
                 uploadSuccess: true,
               })
-              this.triggerEvent('onOk', {}, {});
+              that.triggerEvent('onOk', {}, {});
             } else {
-              this.setData({
+              that.setData({
                 showProgress: false,
                 uploadComplete: true,
                 uploadSuccess: false,
@@ -156,7 +158,7 @@ Component({
             }
           }).catch(err => {
             console.error('上传失败:', err)
-            this.setData({
+            that.setData({
               showProgress: false,
               uploadComplete: true,
               uploadSuccess: false,
@@ -170,7 +172,7 @@ Component({
         },
         fail: (err) => {
           console.error('wx.cloud.uploadFile fail', err)
-          this.setData({
+          that.setData({
             showProgress: false,
             uploadComplete: true,
             uploadSuccess: false,
@@ -184,11 +186,11 @@ Component({
       })
 
       // 保存任务对象用于取消上传
-      this.setData({
+      that.setData({
         uploadTask
       })
       uploadTask.onProgressUpdate((res) => {
-        this.setData({
+        that.setData({
           progress: res.progress
         })
       });
