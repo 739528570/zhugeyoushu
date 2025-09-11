@@ -1,6 +1,6 @@
 // 云函数入口文件
 const cloud = require('wx-server-sdk')
-const DocOperations = require('../database/docOperations')
+const db = require('./database/index')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV }) // 使用当前云环境
 
@@ -9,7 +9,7 @@ exports.main = async (event = {}, context) => {
   try {
     const wxContext = cloud.getWXContext()
 
-    const list = await DocOperations.getDocList({
+    const list = await db.document.getList({
       openid: wxContext.OPENID,
       ...event
     })

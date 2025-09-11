@@ -35,10 +35,10 @@ exports.main = async (event, context) => {
         // 实际项目中需引入epub解析库
         content = 'EPUB内容预览（完整解析需引入专业库）'
         break
-      case 'PDF':
-        // 文本型PDF需引入pdf-parse库
-        content = 'PDF内容预览（完整解析需引入专业库）'
-        break
+      // case 'PDF':
+      //   // 文本型PDF需引入pdf-parse库
+      //   content = 'PDF内容预览（完整解析需引入专业库）'
+      //   break
       default:
         return { code: 415, message: '不支持的文件格式', success: false }
     }
