@@ -1,7 +1,16 @@
 <!--index.wxml-->
 <view class="container">
-	<van-nav-bar title="TEST" placeholder bind:click-left="handleUpload" />
+	<van-nav-bar title="TEST" placeholder />
 	<van-search value="{{ value }}" placeholder="请输入搜索关键词" />
+	<van-divider/>
+	<van-loading
+	 type="spinner"
+	 size="30px"
+	 vertical
+	 wx:if="{{ loading }}"
+	 custom-class="list-loading"
+	>加载中...
+	</van-loading>
 	<van-grid gutter="{{ 10 }}" wx:if="{{ !loading }}">
 		<van-grid-item clickable use-slot>
 			<upload bind:onOk="getList" />
@@ -12,8 +21,12 @@
 		 text="{{item.title}}"
 		 wx:for="{{ list }}"
 		 wx:key="_id"
+		 data-item="{{ item }}"
+		 bind:longpress="delete"
+		 bind:tap="gotoDetail"
 		/>
 	</van-grid>
+	<van-dialog id="van-dialog" />
 	<footer active="index" />
 </view>
 

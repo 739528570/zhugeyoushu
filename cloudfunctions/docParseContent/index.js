@@ -1,17 +1,19 @@
 // 文档内容解析云函数：分片加载文档内容，支持大文件处理
 const cloud = require('wx-server-sdk')
+const db = require('../database/index')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
-const db = cloud.database()
 
 exports.main = async (event, context) => {
   try {
-    const { openid, docId, start = 0, end = 1000 } = event
+    const { docId, start = 0, end = 1000 } = event
+    const wxContext = cloud.getWXContext()
     
     // 1. 获取文档信息
-    const doc = await db.collection('Document')
-      .where({ _id: docId, openid })
-      .field({ fileUrl: true, type: true })
-      .get()
+    const doc = await db.document.getDetail({
+      openid: wxContext.OPENID,
+      docId
+    })
+    console.log(doc)
       
     if (doc.data.length === 0) {
       return { code: 404, message: '文档不存在', success: false }

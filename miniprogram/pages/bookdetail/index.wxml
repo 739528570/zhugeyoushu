@@ -1,0 +1,6 @@
+<!--pages/bookdetail/index.wxml-->
+<!--index.wxml-->
+<view class="container">
+	<van-nav-bar title="DETAIL" placeholder />
+</view>
+

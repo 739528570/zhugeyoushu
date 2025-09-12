@@ -1,6 +1,5 @@
 // 文档上传云函数：处理文档上传、格式解析和元数据存储
-const DocOperations = require('../database/docOperations')
-const db = require('./database/index')
+const db = require('../database/index')
 
 exports.main = async (event, context) => {
   try {
