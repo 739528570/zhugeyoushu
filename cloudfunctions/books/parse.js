@@ -1,22 +1,21 @@
-// 文档内容解析云函数：分片加载文档内容，支持大文件处理
+// 书籍内容解析云函数：分片加载书籍内容，支持大文件处理
 const cloud = require('wx-server-sdk')
-const db = require('../database/index')
-cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
+const DocOperations = require('./docOperations')
 
-exports.main = async (event, context) => {
+async function Parse (event, context) {
   try {
     const { docId, start = 0, end = 1000 } = event
     const wxContext = cloud.getWXContext()
     
-    // 1. 获取文档信息
-    const doc = await db.document.getDetail({
+    // 1. 获取书籍信息
+    const doc = await DocOperations.getDetail({
       openid: wxContext.OPENID,
       docId
     })
     console.log(doc)
       
     if (doc.data.length === 0) {
-      return { code: 404, message: '文档不存在', success: false }
+      return { code: 404, message: '书籍不存在', success: false }
     }
     
     // 2. 下载文件内容
@@ -58,7 +57,9 @@ exports.main = async (event, context) => {
       success: true
     }
   } catch (err) {
-    console.error('文档解析失败:', err)
+    console.error('书籍解析失败:', err)
     return { code: 500, message: '解析失败', success: false }
   }
 }
+
+module.exports = Parse

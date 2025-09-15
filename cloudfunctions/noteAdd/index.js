@@ -12,13 +12,13 @@ exports.main = async (event, context) => {
       return { code: 400, message: '笔记参数不完整', success: false }
     }
     
-    // 2. 验证文档是否存在
+    // 2. 验证书籍是否存在
     const docCheck = await db.collection('Document')
       .where({ _id: docId, openid })
       .count()
       
     if (docCheck.total === 0) {
-      return { code: 404, message: '文档不存在或无权限', success: false }
+      return { code: 404, message: '书籍不存在或无权限', success: false }
     }
     
     // 3. 保存笔记到数据库

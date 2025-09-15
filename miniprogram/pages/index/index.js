@@ -1,6 +1,6 @@
 // index.js
 import Dialog from '@vant/weapp/dialog/dialog';
-wx.cloud.init()
+wx.cloud.init({ env: "cloud1-0gwzt3tn975ea82c" })
 Page({
   data: {
     list: [],
@@ -9,13 +9,19 @@ Page({
   },
   async getList() {
     try {
+      this.setData({
+        loading: true
+      })
       const res = await wx.cloud.callFunction({
-        name: 'docGet',
+        name: 'books',
+        data: {
+          cmd: 'getList',
+        }
       });
       console.log('**load getlist', res)
-      const list = res.result.data?.data?.docs || [];
-      const total = res.result.data?.data?.total || 0;
-      console.log('**load getlist', list)
+      const list = res.result.data?.docs || [];
+      const total = res.result.data?.total || 0;
+
       this.setData({
         list,
         total,
@@ -36,8 +42,9 @@ Page({
         message: `确认删除 ${item.title} ?`,
       })
       const res = await wx.cloud.callFunction({
-        name: 'docDelete',
+        name: 'books',
         data: {
+          cmd: 'delete',
           docId: item._id
         }
       });

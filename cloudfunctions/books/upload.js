@@ -1,7 +1,7 @@
-// 文档上传云函数：处理文档上传、格式解析和元数据存储
-const db = require('../database/index')
+// 书籍上传云函数：处理书籍上传、格式解析和元数据存储
+const DocOperations = require('./docOperations')
 
-exports.main = async (event, context) => {
+ async function Upload (event, context) {
   try {
     const {
       openid,
@@ -12,8 +12,8 @@ exports.main = async (event, context) => {
     } = event
     console.log(event)
     
-    // 添加文档示例
-    const docResult = await db.document.add({
+    // 添加书籍示例
+    const docResult = await DocOperations.addDoc({
       openid: openid,
       title: fileName,
       type: fileType,
@@ -34,8 +34,10 @@ exports.main = async (event, context) => {
     console.error('上传失败:', err)
     return {
       code: 500,
-      message: '服务器错误',
+      message: '服务器错误: upload',
       success: false
     }
   }
 }
+
+module.exports = Upload

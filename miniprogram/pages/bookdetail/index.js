@@ -1,18 +1,50 @@
 // pages/bookdetail/index.js
+wx.cloud.init({
+  env: "cloud1-0gwzt3tn975ea82c"
+})
 Page({
 
   /**
    * 页面的初始数据
    */
   data: {
+    loading: true
+  },
 
+  async getDetail(id) {
+    try {
+      this.setData({
+        loading: true
+      })
+      const res = await wx.cloud.callFunction({
+        name: 'books',
+        data: {
+          cmd: 'getDetail',
+          id
+        }
+      });
+      console.log('**load getDetail', res)
+      const book = res.result.data?.[0] || {};
+
+      this.setData({
+        book,
+        loading: false
+      })
+    } catch (error) {
+      this.setData({
+        loading: false
+      })
+    }
   },
 
   /**
    * 生命周期函数--监听页面加载
    */
-  onLoad(options) {
-
+  async onLoad(options) {
+    console.log(options)
+    if (options.id) {
+      await this.getDetail(options.id)
+    }
   },
 
   /**

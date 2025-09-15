@@ -1,4 +1,5 @@
 // components/upload/index.js
+wx.cloud.init({ env: "cloud1-0gwzt3tn975ea82c" })
 Component({
 
   /**
@@ -128,8 +129,9 @@ Component({
             fileSize: size
           })
           wx.cloud.callFunction({
-            name: 'docUpload',
+            name: 'books',
             data: {
+              cmd: 'upload',
               openid,
               fileUrl: res.fileID,
               fileName: fileName,

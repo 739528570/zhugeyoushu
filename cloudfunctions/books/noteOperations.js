@@ -7,7 +7,7 @@ const _ = db.command
 /**
  * 笔记表结构定义（在云开发控制台手动创建集合时参考）
  * 集合名：notes
- * 索引：{ openid: 1, docId: 1 }（复合索引，用于查询特定文档的笔记）
+ * 索引：{ openid: 1, docId: 1 }（复合索引，用于查询特定书籍的笔记）
  */
 
 class NoteOperations {
@@ -25,13 +25,13 @@ class NoteOperations {
         return { code: 400, message: '缺少必要的笔记信息', success: false }
       }
       
-      // 验证文档是否存在
+      // 验证书籍是否存在
       const doc = await db.collection('documents')
         .where({ _id: docId, openid })
         .get()
       
       if (doc.data.length === 0) {
-        return { code: 404, message: '关联文档不存在', success: false }
+        return { code: 404, message: '关联书籍不存在', success: false }
       }
       
       const result = await db.collection('notes').add({
@@ -62,7 +62,7 @@ class NoteOperations {
   }
 
   /**
-   * 获取文档的所有笔记
+   * 获取书籍的所有笔记
    * @param {Object} params 查询参数
    * @returns {Promise<Object>} 笔记列表
    */
