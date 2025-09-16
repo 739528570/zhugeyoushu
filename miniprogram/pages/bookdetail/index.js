@@ -3,12 +3,12 @@ wx.cloud.init({
   env: "cloud1-0gwzt3tn975ea82c"
 })
 Page({
-
   /**
    * 页面的初始数据
    */
   data: {
-    loading: true
+    loading: true,
+    content: ''
   },
 
   async getDetail(id) {
@@ -16,6 +16,7 @@ Page({
       this.setData({
         loading: true
       })
+      let content = ''
       const res = await wx.cloud.callFunction({
         name: 'books',
         data: {
@@ -25,8 +26,18 @@ Page({
       });
       console.log('**load getDetail', res)
       const book = res.result.data?.[0] || {};
+      const res1 = await wx.cloud.callFunction({
+        name: 'books',
+        data: {
+          cmd: 'parse',
+          docId: id
+        }
+      });
+      content = res1.result.data.content
+      console.log('**load parse', res1)
 
       this.setData({
+        content,
         book,
         loading: false
       })
@@ -35,6 +46,14 @@ Page({
         loading: false
       })
     }
+  },
+
+  async getPage() {
+
+  },
+
+  backHome() {
+    wx.navigateBack()
   },
 
   /**

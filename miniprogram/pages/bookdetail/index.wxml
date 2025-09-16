@@ -1,6 +1,12 @@
 <!--pages/bookdetail/index.wxml-->
 <!--index.wxml-->
 <view class="container">
-	<van-nav-bar title="DETAIL" placeholder />
+	<van-nav-bar
+	 left-arrow
+	 title="DETAIL"
+	 placeholder
+	 bind:click-left="backHome"
+	/>
+	{{content}}
 </view>
 

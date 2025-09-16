@@ -10,9 +10,8 @@ async function Parse (event, context) {
     // 1. 获取书籍信息
     const doc = await DocOperations.getDetail({
       openid: wxContext.OPENID,
-      docId
+      id: docId
     })
-    console.log(doc)
       
     if (doc.data.length === 0) {
       return { code: 404, message: '书籍不存在', success: false }

@@ -5,6 +5,7 @@ const Upload = require('./upload')
 const GetList = require('./getList')
 const Delete = require('./delete')
 const GetDetail = require('./getDetail')
+const Parse = require('./parse')
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
@@ -45,7 +46,7 @@ exports.main = async (event, context) => {
   } catch (error) {
     return {
       code: 500,
-      message: '服务器错误: index',
+      message: error,
       success: false
     }
   }
