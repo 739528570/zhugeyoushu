@@ -1,6 +1,8 @@
 // index.js
 import Dialog from '@vant/weapp/dialog/dialog';
-wx.cloud.init({ env: "cloud1-0gwzt3tn975ea82c" })
+wx.cloud.init({
+  env: "cloud1-0gwzt3tn975ea82c"
+})
 Page({
   data: {
     list: [],
@@ -61,10 +63,28 @@ Page({
         url: `/pages/bookdetail/index?id=${data.target.dataset.item._id}`,
       })
     } catch (error) {
-      
+
+    }
+  },
+  async download(data) {
+    try {
+      console.log(data)
+
+    } catch (error) {
+
     }
   },
   async onLoad(options) {
+    const fs = wx.getFileSystemManager();
+    fs.getSavedFileList({
+      success: (res) => {
+        console.log('success', res)
+
+      },
+      fail: (err) => {
+        console.log('fail', err)
+      }
+    })
     await this.getList();
   },
 });

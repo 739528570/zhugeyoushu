@@ -1,9 +1,11 @@
 <!--index.wxml-->
 <view>
 	<van-nav-bar title="TEST" placeholder>
-		<upload bind:onOk="getList" slot="left" />
+		<upload bind:onOk="getList" slot="left">
+			<text slot="button">导入</text>
+		</upload>
 	</van-nav-bar>
-	<van-search value="{{ value }}" placeholder="请输入搜索关键词" />
+	<!-- <van-search value="{{ value }}" placeh older="请输入搜索关键词" /> -->
 	<van-loading
 	 type="spinner"
 	 size="30px"
@@ -12,37 +14,49 @@
 	 custom-class="list-loading"
 	>加载中...
 	</van-loading>
-	<van-swipe-cell
-	 right-width="{{ 65 }}"
-	 wx:key="_id"
-	 wx:for="{{ list }}"
-	 data-item="{{ item }}"
-	 bind:tap="gotoDetail"
-	>
-		<van-card
-		 centered
-		 thumb="/statics/images/TXT-1.png"
+	<van-empty description="暂无书籍" wx:if="{{ list.length === 0 }}">
+		<upload bind:onOk="getList">
+			<van-button round type="danger" slot="button">导入</van-button>
+		</upload>
+	</van-empty>
+
+	<van-swipe-cell right-width="{{ 65 }}" wx:key="_id" wx:for="{{ list }}">
+		<van-cell
+		 data-item="{{ item }}"
 		 custom-class="book-item"
-		 title-class="book-item-title"
-		 thumb-class="book-item-icon"
+		 bind:click="gotoDetail"
+		 center
+		 clickable
+		 use-label-slot
 		>
-			<van-tag
-			 slot="tags"
-			 mark
-			 type="primary"
-			 custom-class="book-item-tag"
-			>云端
-			</van-tag>
-			<view slot="title" style="display: flex; justify-content: space-between;">
-				<text overflow="ellipsis" max-lines="{{2}}"
-          style="width: 200px; font-weight: 700; font-size: 32rpx; display: flex; place-items: center;">{{ item.title }}</text>
-				<view>
-					<van-button icon="/statics/images/download.svg" custom-class="book-item-down" />
-				</view>
+			<view slot="icon">
+				<van-icon name="/statics/images/TXT-1.png" size="88px" />
 			</view>
-		</van-card>
-		<view slot="right" class="van-swipe-cell__right" bind:tap="delete">删除</view>
+			<view slot="title">
+				<view class="van-cell-text">{{ item.title }}</view>
+			</view>
+			<view slot="label">
+				<van-tag
+				 slot="tags"
+				 mark
+				 type="primary"
+				 custom-class="book-item-tag"
+				>云端
+				</van-tag>
+			</view>
+			<view slot="right-icon" catch:tap="download">
+				<van-button icon="/statics/images/download.svg" custom-class="book-item-down" />
+			</view>
+		</van-cell>
+		<view
+		 slot="right"
+		 class="book-item-delete"
+		 data-item="{{ item }}"
+		 bind:tap="delete"
+		>删除
+		</view>
 	</van-swipe-cell>
+
 	<van-dialog id="van-dialog" />
 	<footer active="index" />
 </view>

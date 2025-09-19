@@ -1,5 +1,5 @@
 <!--components/upload/index.wxml-->
-<text bind:tap="chooseFile">导入</text>
+<slot name="button" bind:tap="chooseFile" />
 <van-dialog
  use-slot
  title="导入书籍"
