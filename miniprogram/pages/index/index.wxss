@@ -3,3 +3,22 @@
   display: flex !important;
   justify-content: center;
 }
+.book-item {
+  margin-top: 15rpx;
+}
+.book-item-title {
+  font-size: 32rpx;
+}
+.book-item-icon {
+  /* width: 80% !important;
+  height: 80% !important; */
+  
+}
+.book-item-tag {
+  margin-top: 10rpx;
+  
+}
+.book-item-down {
+  background: transparent !important; 
+  border: none !important;
+}

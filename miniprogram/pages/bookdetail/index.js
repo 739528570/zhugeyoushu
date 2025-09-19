@@ -8,7 +8,10 @@ Page({
    */
   data: {
     loading: true,
-    content: ''
+    showHeader: false,
+    title: '',
+    content: '',
+    showFooter: false  
   },
 
   async getDetail(id) {
@@ -38,7 +41,7 @@ Page({
 
       this.setData({
         content,
-        book,
+        title: book.title,
         loading: false
       })
     } catch (error) {
@@ -54,6 +57,12 @@ Page({
 
   backHome() {
     wx.navigateBack()
+  },
+
+  handleTap() {
+    this.setData({
+      showFooter: !this.data.showFooter
+    })
   },
 
   /**

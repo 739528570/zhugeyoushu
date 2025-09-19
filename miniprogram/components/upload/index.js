@@ -13,6 +13,7 @@ Component({
    * 组件的初始数据
    */
   data: {
+    show: false,
     // 上传进度
     progress: 0,
     // 是否显示进度条
@@ -28,7 +29,7 @@ Component({
     // 上传任务对象（用于取消上传）
     uploadTask: null,
     // 支持的文件格式
-    supportFormats: ['txt', 'epub', 'pdf']
+    supportFormats: ['txt', 'epub', 'pdf'],
   },
 
   /**
@@ -70,6 +71,7 @@ Component({
             return
           }
           that.setData({
+            show: true,
             showProgress: true,
             uploadFileName: name,
             progress: 0,
@@ -146,6 +148,7 @@ Component({
             console.log('wx.cloud.callFunction', docResult)
             if (code === 200) {
               that.setData({
+                show: false,
                 showProgress: false,
                 uploadComplete: true,
                 uploadSuccess: true,
@@ -153,6 +156,7 @@ Component({
               that.triggerEvent('onOk', {}, {});
             } else {
               that.setData({
+                show: false,
                 showProgress: false,
                 uploadComplete: true,
                 uploadSuccess: false,
@@ -161,7 +165,8 @@ Component({
           }).catch(err => {
             console.error('上传失败:', err)
             that.setData({
-              showProgress: false,
+                show: false,
+                showProgress: false,
               uploadComplete: true,
               uploadSuccess: false,
             })

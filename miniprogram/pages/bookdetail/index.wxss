@@ -1,1 +1,8 @@
 /* pages/bookdetail/index.wxss */
+.list-loading {
+  display: flex !important;
+}
+.book-detail {
+  line-height: 80rpx;
+  padding: 5%;
+}

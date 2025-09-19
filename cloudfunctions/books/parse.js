@@ -4,7 +4,7 @@ const DocOperations = require('./docOperations')
 
 async function Parse (event, context) {
   try {
-    const { docId, start = 0, end = 1000 } = event
+    const { docId, start = 0, end = 500 } = event
     const wxContext = cloud.getWXContext()
     
     // 1. 获取书籍信息

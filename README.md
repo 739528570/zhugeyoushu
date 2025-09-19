@@ -10,3 +10,6 @@
 
 - [云开发文档](https://developers.weixin.qq.com/miniprogram/dev/wxcloud/basis/getting-started.html)
 
+问题
+1、从云端下载文本加载慢
+2、分章节

@@ -1,8 +1,9 @@
 <!--index.wxml-->
-<view class="container">
-	<van-nav-bar title="TEST" placeholder />
+<view>
+	<van-nav-bar title="TEST" placeholder>
+		<upload bind:onOk="getList" slot="left" />
+	</van-nav-bar>
 	<van-search value="{{ value }}" placeholder="请输入搜索关键词" />
-	<van-divider/>
 	<van-loading
 	 type="spinner"
 	 size="30px"
@@ -11,21 +12,37 @@
 	 custom-class="list-loading"
 	>加载中...
 	</van-loading>
-	<van-grid gutter="{{ 10 }}" wx:if="{{ !loading }}">
-		<van-grid-item clickable use-slot>
-			<upload bind:onOk="getList" />
-		</van-grid-item>
-		<van-grid-item
-		 clickable
-		 icon="photo-o"
-		 text="{{item.title}}"
-		 wx:for="{{ list }}"
-		 wx:key="_id"
-		 data-item="{{ item }}"
-		 bind:longpress="delete"
-		 bind:tap="gotoDetail"
-		/>
-	</van-grid>
+	<van-swipe-cell
+	 right-width="{{ 65 }}"
+	 wx:key="_id"
+	 wx:for="{{ list }}"
+	 data-item="{{ item }}"
+	 bind:tap="gotoDetail"
+	>
+		<van-card
+		 centered
+		 thumb="/statics/images/TXT-1.png"
+		 custom-class="book-item"
+		 title-class="book-item-title"
+		 thumb-class="book-item-icon"
+		>
+			<van-tag
+			 slot="tags"
+			 mark
+			 type="primary"
+			 custom-class="book-item-tag"
+			>云端
+			</van-tag>
+			<view slot="title" style="display: flex; justify-content: space-between;">
+				<text overflow="ellipsis" max-lines="{{2}}"
+          style="width: 200px; font-weight: 700; font-size: 32rpx; display: flex; place-items: center;">{{ item.title }}</text>
+				<view>
+					<van-button icon="/statics/images/download.svg" custom-class="book-item-down" />
+				</view>
+			</view>
+		</van-card>
+		<view slot="right" class="van-swipe-cell__right" bind:tap="delete">删除</view>
+	</van-swipe-cell>
 	<van-dialog id="van-dialog" />
 	<footer active="index" />
 </view>

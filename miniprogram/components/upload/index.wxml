@@ -1,20 +1,18 @@
 <!--components/upload/index.wxml-->
-<view bind:tap="chooseFile">
-	<van-icon
-	 wx:if="{{ !showProgress }}"
-	 name="plus"
-	 size="30px"
-	 style="width: 50px; height: 50px"
-	/>
-	<van-circle
-	 size="46"
-	 color="#07c160"
-	 stroke-width="2"
-	 clockwise="false"
-	 wx:if="{{ showProgress }}"
-	 value="{{ progress }}"
-	>
-		<view style="font-size: 12px">{{progress}}%</view>
-	</van-circle>
-</view>
+<text bind:tap="chooseFile">导入</text>
+<van-dialog
+ use-slot
+ title="导入书籍"
+ show="{{ show }}"
+ show-confirm-button="{{false}}"
+ show-cancel-button
+ bind:cancel="cancelUpload"
+ custom-class="upload-dialog"
+>
+	<view style="margin-top: 20px">
+		<van-circle value="{{ progress }}">
+			<view style="font-size: 12px">{{progress}}%</view>
+		</van-circle>
+	</view>
+</van-dialog>
 

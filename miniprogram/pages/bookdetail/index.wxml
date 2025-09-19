@@ -1,12 +1,28 @@
 <!--pages/bookdetail/index.wxml-->
 <!--index.wxml-->
-<view class="container">
-	<van-nav-bar
-	 left-arrow
-	 title="DETAIL"
-	 placeholder
-	 bind:click-left="backHome"
-	/>
-	{{content}}
+<van-nav-bar
+ left-arrow
+ title="{{ title }}"
+ placeholder
+ bind:click-left="backHome"
+/>
+<view class="book-detail" bind:tap="handleTap">
+	<van-loading
+	 type="spinner"
+	 size="30px"
+	 vertical
+	 custom-class="list-loading"
+	 wx:if="{{ loading }}"
+	>加载中...
+	</van-loading>
+	<view wx:if="{{ !loading }}">
+		{{content}}
+	</view>
 </view>
+<van-popup
+ show="{{ showFooter }}"
+ overlay="{{false}}"
+ position="bottom"
+ custom-style="height: 15%;"
+/>
 
