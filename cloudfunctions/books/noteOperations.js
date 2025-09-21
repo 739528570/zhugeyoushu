@@ -26,7 +26,7 @@ class NoteOperations {
       }
       
       // 验证书籍是否存在
-      const doc = await db.collection('documents')
+      const doc = await db.collection('books')
         .where({ _id: docId, openid })
         .get()
       

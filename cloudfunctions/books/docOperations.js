@@ -6,7 +6,7 @@ const _ = db.command
 
 /**
  * 书籍表结构定义（在云开发控制台手动创建集合时参考）
- * 集合名：documents
+ * 集合名：books
  * 索引：openid（普通索引，用于查询用户书籍）
  */
 
@@ -25,7 +25,7 @@ class DocOperations {
         return { code: 400, message: '缺少必要的书籍信息', success: false }
       }
       
-      const result = await db.collection('documents').add({
+      const result = await db.collection('books').add({
         data: {
           openid,
           title,
@@ -65,7 +65,7 @@ class DocOperations {
       }
       
       // 构建查询条件
-      let query = db.collection('documents').where({ openid })
+      let query = db.collection('books').where({ openid })
       if (type) {
         query = query.where({ type })
       }
@@ -111,7 +111,7 @@ class DocOperations {
       }
       
       // 构建查询条件
-      let query = db.collection('documents').where({ openid, _id: id })
+      let query = db.collection('books').where({ openid, _id: id })
 
       const doc = await query.get()
       
@@ -140,7 +140,7 @@ class DocOperations {
       }
       
       // 验证书籍归属
-      const doc = await db.collection('documents')
+      const doc = await db.collection('books')
         .where({ _id: docId, openid })
         .get()
       
@@ -149,7 +149,7 @@ class DocOperations {
       }
       
       // 更新阅读位置
-      await db.collection('documents')
+      await db.collection('books')
         .where({ _id: docId })
         .update({
           data: {
@@ -179,7 +179,7 @@ class DocOperations {
       }
       
       // 验证书籍归属
-      const doc = await db.collection('documents')
+      const doc = await db.collection('books')
         .where({ _id: docId, openid })
         .get()
       
@@ -188,7 +188,7 @@ class DocOperations {
       }
       
       // 删除书籍记录
-      await db.collection('documents').doc(docId).remove()
+      await db.collection('books').doc(docId).remove()
       
       // 同时删除关联的笔记
       await db.collection('notes')

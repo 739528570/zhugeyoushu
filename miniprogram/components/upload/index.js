@@ -1,17 +1,17 @@
 // components/upload/index.js
+import { booksPath } from "../../utils/index";
+
 wx.cloud.init({
-  env: "cloud1-0gwzt3tn975ea82c"
-})
+  env: "cloud1-0gwzt3tn975ea82c",
+});
 Component({
   options: {
-    multipleSlots: true // 在组件定义时的选项中启用多slot支持
+    multipleSlots: true, // 在组件定义时的选项中启用多slot支持
   },
   /**
    * 组件的属性列表
    */
-  properties: {
-
-  },
+  properties: {},
 
   /**
    * 组件的初始数据
@@ -23,17 +23,17 @@ Component({
     // 是否显示进度条
     showProgress: false,
     // 当前上传的文件名
-    uploadFileName: '',
+    uploadFileName: "",
     // 上传是否完成
     uploadComplete: false,
     // 上传是否成功
     uploadSuccess: false,
     // 结果消息
-    resultMessage: '',
+    resultMessage: "",
     // 上传任务对象（用于取消上传）
     uploadTask: null,
     // 支持的文件格式
-    supportFormats: ['txt', 'epub', 'pdf'],
+    supportFormats: ["txt", "epub", "pdf"],
   },
 
   /**
@@ -42,37 +42,34 @@ Component({
   methods: {
     // 选择文件
     async chooseFile(event) {
-      if (this.data.showProgress) return
-      const that = this
+      if (this.data.showProgress) return;
+      const that = this;
       wx.chooseMessageFile({
         count: 1,
-        type: 'file',
+        type: "file",
         success(res) {
-          console.log(res)
-          const file = res.tempFiles[0]
-          const {
-            name,
-            size,
-          } = file
+          console.log(res);
+          const file = res.tempFiles[0];
+          const { name, size } = file;
           // 1. 验证文件大小（不超过50MB）
           if (size > 50 * 1024 * 1024) {
             wx.showToast({
-              title: '文件过大（最大50MB）',
-              icon: 'none',
-              duration: 2000
-            })
-            return
+              title: "文件过大（最大50MB）",
+              icon: "none",
+              duration: 2000,
+            });
+            return;
           }
 
           // 2. 验证文件格式
-          const fileExt = name.split('.').pop().toLowerCase()
+          const fileExt = name.split(".").pop().toLowerCase();
           if (!that.data.supportFormats.includes(fileExt)) {
             wx.showToast({
-              title: '不支持的文件格式',
-              icon: 'none',
-              duration: 2000
-            })
-            return
+              title: "不支持的文件格式",
+              icon: "none",
+              duration: 2000,
+            });
+            return;
           }
           that.setData({
             show: true,
@@ -81,11 +78,11 @@ Component({
             progress: 0,
             uploadComplete: false,
             uploadSuccess: false,
-            resultMessage: ''
-          })
-          that.uploadToCloud(file)
-        }
-      })
+            resultMessage: "",
+          });
+          that.uploadToCloud(file);
+        },
+      });
       // event.detail.callback(true)
     },
 
@@ -93,52 +90,48 @@ Component({
     async uploadToCloud(file) {
       const that = this;
       const info = await wx.cloud.callFunction({
-        name: 'getWXContext',
-      })
-      const openid = info.result?.openid
+        name: "getWXContext",
+      });
+      const openid = info.result?.openid;
       // const file = event.detail.file
-      console.log('uploadToCloud', file, openid)
+      console.log("uploadToCloud", file, openid);
 
-      const {
-        path,
-        name,
-        size
-      } = file
+      const { path, name, size } = file;
 
-
-      const fileExt = name.split('.').pop().toLowerCase()
-      const fileName = name.split('.').shift()
+      const fileExt = name.split(".").pop().toLowerCase();
+      const fileName = name.split(".").shift();
       if (!openid) {
         wx.showToast({
-          title: '用户信息获取失败',
-          icon: 'none',
-          duration: 2000
-        })
+          title: "用户信息获取失败",
+          icon: "none",
+          duration: 2000,
+        });
         that.setData({
-          showProgress: false
-        })
-        return
+          showProgress: false,
+        });
+        return;
       }
 
       // 1. 生成云存储路径
-      const cloudPath = `documents/${openid}/${Date.now()}-${fileName}`
+      const cloudPath = `books/${openid}/${Date.now()}-${fileName}`;
 
-      const fs = wx.getFileSystemManager()
-      fs.access({
-        path: '/books',
-        fail: () => {
-          await fs.mkdirSync('/books')
-        }
-      })
-      fs.access({
-        path: '/books',
-        success: () => {
-          console.log('文件夹?', fs);
-        }
-      })
-      // const res = fs.saveFileSync(path, '/books/')
-      // console.log('文件已保存', res);
+      const fs = wx.getFileSystemManager();
 
+      try {
+        const res = await fs.saveFileSync(path, `${booksPath}/${name}`);
+        console.log("文件已保存", res);
+      } catch (error) {
+        console.log("文件未保存 error", error);
+      }
+      const filelist = fs.getSavedFileList({
+        success: (res) => {
+          console.log("success", res);
+        },
+        fail: (err) => {
+          console.log("fail", err);
+        },
+      });
+      console.log("filelist", filelist);
       // 2. 创建上传任务
       // const uploadTask = wx.cloud.uploadFile({
       //   cloudPath,
@@ -230,20 +223,19 @@ Component({
     // 取消上传
     cancelUpload() {
       if (this.data.uploadTask) {
-        this.data.uploadTask.abort()
+        this.data.uploadTask.abort();
         this.setData({
           showProgress: false,
           uploadTask: null,
-          uploadFileName: '',
-          progress: 0
-        })
+          uploadFileName: "",
+          progress: 0,
+        });
         wx.showToast({
-          title: '已取消上传',
-          icon: 'none',
-          duration: 2000
-        })
+          title: "已取消上传",
+          icon: "none",
+          duration: 2000,
+        });
       }
     },
-
-  }
-})
+  },
+});

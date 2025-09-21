@@ -29,7 +29,7 @@ class ReadingRecordOperations {
       })
       
       // 2. 更新文档最后阅读页码
-      await db.collection('documents')
+      await db.collection('books')
         .where({ _id: docId, openid })
         .update({
           data: {
@@ -98,7 +98,7 @@ class ReadingRecordOperations {
       }
       
       // 获取文档总页数
-      const doc = await db.collection('documents')
+      const doc = await db.collection('books')
         .where({ _id: docId, openid })
         .field({ totalPages: true })
         .get()

@@ -14,7 +14,7 @@
 	 custom-class="list-loading"
 	>加载中...
 	</van-loading>
-	<van-empty description="暂无书籍" wx:if="{{ list.length === 0 }}">
+	<van-empty description="暂无书籍" wx:if="{{ !loading && list.length === 0 }}">
 		<upload bind:onOk="getList">
 			<van-button round type="danger" slot="button">导入</van-button>
 		</upload>
