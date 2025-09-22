@@ -1,9 +1,6 @@
 // components/upload/index.js
 import { booksPath } from "../../utils/index";
 
-wx.cloud.init({
-  env: "cloud1-0gwzt3tn975ea82c",
-});
 Component({
   options: {
     multipleSlots: true, // 在组件定义时的选项中启用多slot支持
@@ -96,7 +93,9 @@ Component({
       // const file = event.detail.file
       console.log("uploadToCloud", file, openid);
 
-      const { path, name, size } = file;
+      let path = file.path;
+      const name = file.name;
+      const size = file.size;
 
       const fileExt = name.split(".").pop().toLowerCase();
       const fileName = name.split(".").shift();
@@ -118,106 +117,100 @@ Component({
       const fs = wx.getFileSystemManager();
 
       try {
-        const res = await fs.saveFileSync(path, `${booksPath}/${name}`);
-        console.log("文件已保存", res);
+        path = await fs.saveFileSync(path, `${booksPath}/${name}`);
+        console.log("文件已保存", path, name, size);
+        const fileList = await fs.readdirSync(booksPath);
+        console.log("success", booksPath, fileList);
       } catch (error) {
         console.log("文件未保存 error", error);
       }
-      const filelist = fs.getSavedFileList({
-        success: (res) => {
-          console.log("success", res);
+
+      // 2. 创建上传任务
+      const uploadTask = wx.cloud.uploadFile({
+        cloudPath,
+        filePath: path,
+        success: res => {
+          console.log('success', {
+            openid,
+            fileUrl: res.fileID,
+            fileName: fileName,
+            fileType: fileExt.toUpperCase(),
+            fileSize: size
+          })
+          wx.cloud.callFunction({
+            name: 'books',
+            data: {
+              cmd: 'upload',
+              openid,
+              fileUrl: res.fileID,
+              fileName: fileName,
+              fileType: fileExt.toUpperCase(),
+              fileSize: size
+            }
+          }).then(docResult => {
+            // 处理云函数返回结果
+            const {
+              code
+            } = docResult.result
+            console.log('wx.cloud.callFunction', docResult)
+            if (code === 200) {
+              that.setData({
+                show: false,
+                showProgress: false,
+                uploadComplete: true,
+                uploadSuccess: true,
+                progress: 0
+              })
+              that.triggerEvent('onOk', {}, {});
+            } else {
+              that.setData({
+                show: false,
+                showProgress: false,
+                uploadComplete: true,
+                uploadSuccess: false,
+                progress: 0
+              })
+            }
+          }).catch(err => {
+            console.error('上传失败:', err)
+            that.setData({
+              show: false,
+              showProgress: false,
+              uploadComplete: true,
+              uploadSuccess: false,
+              progress: 0
+            })
+            wx.showToast({
+              title: '上传失败，请稍后重试',
+              icon: 'none',
+              duration: 2000
+            })
+          })
         },
         fail: (err) => {
-          console.log("fail", err);
+          console.error('wx.cloud.uploadFile fail', err)
+          that.setData({
+            showProgress: false,
+            uploadComplete: true,
+            uploadSuccess: false,
+          })
+          wx.showToast({
+            title: '上传失败，请稍后重试',
+            icon: 'none',
+            duration: 2000
+          })
         },
-      });
-      console.log("filelist", filelist);
-      // 2. 创建上传任务
-      // const uploadTask = wx.cloud.uploadFile({
-      //   cloudPath,
-      //   filePath: path,
-      //   success: res => {
-      //     console.log('success', {
-      //       openid,
-      //       fileUrl: res.fileID,
-      //       fileName: fileName,
-      //       fileType: fileExt.toUpperCase(),
-      //       fileSize: size
-      //     })
-      //     wx.cloud.callFunction({
-      //       name: 'books',
-      //       data: {
-      //         cmd: 'upload',
-      //         openid,
-      //         fileUrl: res.fileID,
-      //         fileName: fileName,
-      //         fileType: fileExt.toUpperCase(),
-      //         fileSize: size
-      //       }
-      //     }).then(docResult => {
-      //       // 处理云函数返回结果
-      //       const {
-      //         code
-      //       } = docResult.result
-      //       console.log('wx.cloud.callFunction', docResult)
-      //       if (code === 200) {
-      //         that.setData({
-      //           show: false,
-      //           showProgress: false,
-      //           uploadComplete: true,
-      //           uploadSuccess: true,
-      //           progress: 0
-      //         })
-      //         that.triggerEvent('onOk', {}, {});
-      //       } else {
-      //         that.setData({
-      //           show: false,
-      //           showProgress: false,
-      //           uploadComplete: true,
-      //           uploadSuccess: false,
-      //           progress: 0
-      //         })
-      //       }
-      //     }).catch(err => {
-      //       console.error('上传失败:', err)
-      //       that.setData({
-      //         show: false,
-      //         showProgress: false,
-      //         uploadComplete: true,
-      //         uploadSuccess: false,
-      //         progress: 0
-      //       })
-      //       wx.showToast({
-      //         title: '上传失败，请稍后重试',
-      //         icon: 'none',
-      //         duration: 2000
-      //       })
-      //     })
-      //   },
-      //   fail: (err) => {
-      //     console.error('wx.cloud.uploadFile fail', err)
-      //     that.setData({
-      //       showProgress: false,
-      //       uploadComplete: true,
-      //       uploadSuccess: false,
-      //     })
-      //     wx.showToast({
-      //       title: '上传失败，请稍后重试',
-      //       icon: 'none',
-      //       duration: 2000
-      //     })
-      //   },
-      // })
+      })
 
-      // // 保存任务对象用于取消上传
-      // that.setData({
-      //   uploadTask
-      // })
-      // uploadTask.onProgressUpdate((res) => {
-      //   that.setData({
-      //     progress: res.progress
-      //   })
-      // });
+      // 保存任务对象用于取消上传
+      that.setData({
+        uploadTask
+      })
+      uploadTask.onProgressUpdate((res) => {
+        that.setData({
+          progress: res.progress
+        })
+      });
     },
 
     // 取消上传

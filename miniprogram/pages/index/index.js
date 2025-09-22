@@ -1,9 +1,7 @@
 // index.js
 import Dialog from "@vant/weapp/dialog/dialog";
 import { booksPath } from "../../utils/index";
-wx.cloud.init({
-  env: "cloud1-0gwzt3tn975ea82c",
-});
+
 Page({
   data: {
     list: [],
@@ -21,9 +19,26 @@ Page({
           cmd: "getList",
         },
       });
-      console.log("**load getlist", res);
-      const list = res.result.data?.docs || [];
+      const cacheFileList = getApp().globalData.cacheFileList ?? [];
+      console.log("getlist", cacheFileList);
+      let list = res.result.data?.docs || [];
       const total = res.result.data?.total || 0;
+
+      if (cacheFileList.length) {
+        list = list.map((item) => {
+          if (
+            cacheFileList.includes(
+              `${item.title}.${item.type.toLocaleLowerCase()}`
+            )
+          ) {
+            return {
+              ...item,
+              isLocal: true,
+            };
+          }
+          return item;
+        });
+      }
 
       this.setData({
         list,
@@ -69,22 +84,6 @@ Page({
     } catch (error) {}
   },
   async onLoad(options) {
-    const fs = wx.getFileSystemManager();
-    try {
-      fs.accessSync(booksPath);
-      console.log('目录已存在，无需创建。');
-    } catch (e) {
-      fs.mkdirSync(booksPath, { recursive: true });
-      console.log('目录创建成功！');
-    }
-    fs.getSavedFileList({
-      success: (res) => {
-        console.log("success", res);
-      },
-      fail: (err) => {
-        console.log("fail", err);
-      },
-    });
     await this.getList();
   },
 });
