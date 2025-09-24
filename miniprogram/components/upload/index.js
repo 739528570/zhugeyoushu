@@ -114,29 +114,13 @@ Component({
       // 1. 生成云存储路径
       const cloudPath = `books/${openid}/${Date.now()}-${fileName}`;
 
-      const fs = wx.getFileSystemManager();
-
-      try {
-        path = await fs.saveFileSync(path, `${booksPath}/${name}`);
-        console.log("文件已保存", path, name, size);
-        const fileList = await fs.readdirSync(booksPath);
-        console.log("success", booksPath, fileList);
-      } catch (error) {
-        console.log("文件未保存 error", error);
-      }
-
       // 2. 创建上传任务
       const uploadTask = wx.cloud.uploadFile({
         cloudPath,
         filePath: path,
-        success: res => {
-          console.log('success', {
-            openid,
-            fileUrl: res.fileID,
-            fileName: fileName,
-            fileType: fileExt.toUpperCase(),
-            fileSize: size
-          })
+        success: async res => {
+          console.log('success', res)
+
           wx.cloud.callFunction({
             name: 'books',
             data: {
@@ -154,14 +138,17 @@ Component({
             } = docResult.result
             console.log('wx.cloud.callFunction', docResult)
             if (code === 200) {
+              this.setLocalFile(docResult.result.data.docId, path)
               that.setData({
                 show: false,
                 showProgress: false,
                 uploadComplete: true,
                 uploadSuccess: true,
-                progress: 0
               })
               that.triggerEvent('onOk', {}, {});
+              that.setData({
+                progress: 0
+              })
             } else {
               that.setData({
                 show: false,
@@ -193,6 +180,7 @@ Component({
             showProgress: false,
             uploadComplete: true,
             uploadSuccess: false,
+            progress: 0
           })
           wx.showToast({
             title: '上传失败，请稍后重试',
@@ -230,5 +218,22 @@ Component({
         });
       }
     },
+
+    async setLocalFile(id, path) {
+      const fs = wx.getFileSystemManager();
+      try {
+        const res = await fs.saveFileSync(path, `${booksPath}/${id}`);
+        console.log("文件已保存", res + '');
+        await getApp().getLocalFileList();
+        console.log("success", booksPath);
+      } catch (error) {
+        console.log("error setLocalFile：", error);
+        wx.showToast({
+          title: "文件下载失败，请尝试重新下载！",
+          icon: "none",
+          duration: 2000,
+        });
+      }
+    }
   },
 });

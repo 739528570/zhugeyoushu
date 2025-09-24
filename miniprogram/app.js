@@ -32,6 +32,8 @@ App({
     this.setupNetworkListener();
 
     this.createBooksDir();
+
+    this.getLocalFileList();
   },
   // 更新网络状态到全局
   updateNetworkStatus() {
@@ -68,8 +70,12 @@ App({
       fs.mkdirSync(booksPath, { recursive: true });
       console.log("目录创建成功！");
     }
+  },
+
+  async getLocalFileList() {
+    const fs = wx.getFileSystemManager();
     const fileList = await fs.readdirSync(booksPath);
     this.globalData.cacheFileList = fileList;
-    console.log("init fileList", fileList);
+    console.log("getLocalFileList", fileList);
   },
 });

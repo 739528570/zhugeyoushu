@@ -23,3 +23,7 @@
   background: red;
   color: white;
 }
+.download-loading {
+  display: flex !important;
+  margin-top: 50%;
+}
