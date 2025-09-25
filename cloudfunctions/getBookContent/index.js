@@ -1,18 +1,28 @@
-// 书籍内容解析云函数：分片加载书籍内容，支持大文件处理
+// 云函数入口文件
 const cloud = require('wx-server-sdk')
-const DocOperations = require('./docOperations')
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV }) // 使用当前云环境
+const db = cloud.database()
 
-async function Parse (event, context) {
+// 云函数入口函数
+exports.main = async function (event, context) {
   try {
     const { docId, start = 0, end = 500 } = event
-    const wxContext = cloud.getWXContext()
+    const wxContext = cloud.getWXContext();
+    const openid = wxContext.OPENID;
     
-    // 1. 获取书籍信息
-    const doc = await DocOperations.getDetail({
-      openid: wxContext.OPENID,
-      id: docId
-    })
-      
+    if (!openid) {
+      return { code: 400, message: '用户标识不能为空', success: false }
+    }
+    if (!docId) {
+      return { code: 400, message: '书籍ID不能为空', success: false }
+    }
+    
+    // 获取书籍信息
+    // 构建查询条件
+    let query = db.collection('books').where({ openid, _id: docId })
+
+    const doc = await query.get()
+
     if (doc.data.length === 0) {
       return { code: 404, message: '书籍不存在', success: false }
     }
@@ -49,6 +59,7 @@ async function Parse (event, context) {
     return {
       code: 200,
       data: {
+        ...doc.data[0],
         content: slicedContent,
         totalLength: content.length,
         hasMore: end < content.length
@@ -60,5 +71,3 @@ async function Parse (event, context) {
     return { code: 500, message: '解析失败', success: false }
   }
 }
-
-module.exports = Parse

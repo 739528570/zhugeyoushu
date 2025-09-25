@@ -14,10 +14,8 @@ Page({
         loading: true,
       });
       const res = await wx.cloud.callFunction({
-        name: "books",
-        data: {
-          cmd: "getList",
-        },
+        name: "getBooks",
+        data: {},
       });
       const cacheFileList = getApp().globalData.cacheFileList ?? [];
       console.log("getlist", cacheFileList);
@@ -63,9 +61,8 @@ Page({
         message: `确认删除 ${item.title} ?`,
       });
       await wx.cloud.callFunction({
-        name: "books",
+        name: "deleteBook",
         data: {
-          cmd: "delete",
           docId: item._id,
         },
       });

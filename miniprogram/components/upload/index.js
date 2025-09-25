@@ -122,10 +122,8 @@ Component({
           console.log('success', res)
 
           wx.cloud.callFunction({
-            name: 'books',
+            name: 'uploadBook',
             data: {
-              cmd: 'upload',
-              openid,
               fileUrl: res.fileID,
               fileName: fileName,
               fileType: fileExt.toUpperCase(),

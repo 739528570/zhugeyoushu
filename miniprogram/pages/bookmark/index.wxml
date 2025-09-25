@@ -1,7 +1,6 @@
 <!--pages/bookmark/index.wxml-->
 <view class="container">
   <van-nav-bar title="书签" />
-  <view class="title">快速了解云开发</view>
-  <view class="top_tip">免鉴权接口调用 免部署后台 高并发</view>
+  <video src="https://v26-default.ixigua.com/fc361ff88e8de78da8ba33b07a60fe83/68d570dd/video/tos/cn/tos-cn-ve-15c000-ce/oktVVegqeAQbMnfcqG7RkiCcGIJ8LBzCDgMIVy/?a=6383&ch=0&cr=0&dr=0&lr=unwatermarked&net=5&cd=0%7C0%7C0%7C0&cv=1&br=4546&bt=4546&cs=0&ds=4&ft=rVWEerwwZR7Gs0Po0PDS6kwc3RZtGNb2.u9eFGdCfJO12nzXT&mime_type=video_mp4&qs=0&rc=aTdnZmg0OjY7aWg5M2Y6OUBpM2lnaHY5cnRqNjMzbGkzNEBeMjBeL14wXmAxLS4wNF9gYSM0LjZkMmRrNl5hLS1kLWJzcw%3D%3D&btag=80000e00030000&cquery=100q&dy_q=1758814337&feature_id=0ea98fd3bdc3c6c14a3d0804cc272721&l=20250925233217C34CBA4DF5A138B9E9B9" />
   <footer active="bookmark" />
 </view>
