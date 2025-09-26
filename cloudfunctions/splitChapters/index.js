@@ -1,197 +1,370 @@
-// 小说自动分章节云函数
+// 小说章节信息提取云函数
 const cloud = require('wx-server-sdk')
-cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
+cloud.init({
+  env: cloud.DYNAMIC_CURRENT_ENV
+})
 const db = cloud.database()
+const cheerio = require('cheerio')
+const pdfParse = require('pdf-parse')
+const {
+  Readable
+} = require('stream'); // 使用Node.js的stream模块
 
-// 章节标题模式正则（支持多种格式）
+// 章节标题匹配正则表达式库
 const CHAPTER_PATTERNS = [
-  // 匹配 "第一章 标题"、"第1章 标题" 格式
-  /^[\s　]*第[零一二三四五六七八九十百千万\d]+[章节回卷篇集部][\s　:：]+(.+?)[\s　]*$/,
-  // 匹配 "1. 标题"、"01. 标题" 格式
-  /^[\s　]*\d+[\.、:：][\s　]+(.+?)[\s　]*$/,
-  // 匹配 "【第一章】标题" 格式
-  /^[\s　]*【第[零一二三四五六七八九十百千万\d]+[章节回]】[\s　]*(.+?)[\s　]*$/,
-  // 匹配 "第一章" 无标题格式
-  /^[\s　]*第[零一二三四五六七八九十百千万\d]+[章节回卷篇集部][\s　]*$/,
-  // 匹配 "壹、标题" 中文数字格式
-  /^[\s　]*[壹贰叁肆伍陆柒捌玖拾佰仟]+[、.][\s　]*(.+?)[\s　]*$/
+  // 通用章节格式：第X章/卷/节
+  /^[第卷部集](\d{1,4})[章回卷节篇幕集](.*)$/,
+  // 数字+标题：1. 标题 / 1-1 标题
+  /^(\d{1,4})[.\-](.*)$/,
+  // 英文章节：Chapter X / Book X
+  /^(Chapter|Book|Section)\s*(\d{1,4})\s*[:：]?(.*)$/i,
+  // 卷+章节组合：第一卷 第一章
+  /^[第](\d{1,4})[卷部集]\s*[第](\d{1,4})[章回节](.*)$/
 ]
 
-// 章节分割主函数
-exports.main = async function (event) {
-  try {
-    const { docId, openid, content = '', type = 'TXT' } = event
-    
-    if (!docId || !openid || !content) {
-      return { code: 400, message: '参数不完整', success: false }
-    }
-    
-    // 根据文件类型选择不同的分割策略
-    let chapters
-    if (type === 'EPUB') {
-      // EPUB已有章节结构，直接解析
-      chapters = parseEpubChapters(content)
-    } else {
-      // TXT文本自动分割章节
-      chapters = splitTxtChapters(content)
-    }
-    
-    // 保存章节信息到数据库
-    await saveChaptersToDB({
-      docId,
-      openid,
-      chapters,
-      totalChapters: chapters.length
-    })
-    
-    return {
-      code: 200,
-      data: { chapters, totalChapters: chapters.length },
-      success: true
-    }
-  } catch (err) {
-    console.error('分章节失败:', err)
-    return { code: 500, message: '分章节处理失败', success: false }
+// 卷/部匹配正则
+const VOLUME_PATTERNS = [
+  /^[第](\d{1,3})[卷部集篇](.*)$/,
+  /^(Volume|Book|Part)\s*(\d{1,3})\s*[:：]?(.*)$/i
+]
+
+/**
+ * 解析TXT格式小说的章节信息
+ * @param {String} content 文本内容
+ * @returns {Object} 解析结果
+ */
+function parseTxtChapters(content) {
+  // 按换行分割行，过滤空行和过短行
+  const lines = content.split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line.length > 2 && line.length < 50)
+
+  const result = {
+    volumes: [],
+    chapters: [],
+    structure: [] // 完整结构：[{type: 'volume', id: 1, title: '第一卷', start: 0}, ...]
   }
+
+  let currentVolume = null
+  let lineIndex = 0
+
+  for (const line of lines) {
+    let isVolume = false
+    let isChapter = false
+    let matchResult = null
+
+    // 先判断是否为卷/部
+    for (const pattern of VOLUME_PATTERNS) {
+      matchResult = line.match(pattern)
+      if (matchResult) {
+        isVolume = true
+        break
+      }
+    }
+
+    if (isVolume) {
+      // 处理卷信息
+      const volumeId = parseInt(matchResult[1])
+      const volumeTitle = matchResult[2] || `第${volumeId}卷`
+
+      currentVolume = {
+        id: volumeId,
+        title: volumeTitle,
+        startLine: lineIndex,
+        chapterCount: 0
+      }
+
+      result.volumes.push(currentVolume)
+      result.structure.push({
+        type: 'volume',
+        id: volumeId,
+        title: volumeTitle,
+        position: lineIndex
+      })
+    } else {
+      // 判断是否为章节
+      for (const pattern of CHAPTER_PATTERNS) {
+        matchResult = line.match(pattern)
+        if (matchResult) {
+          isChapter = true
+          break
+        }
+      }
+
+      if (isChapter) {
+        // 处理章节信息
+        let chapterId, chapterTitle
+
+        if (matchResult.length === 3) {
+          chapterId = parseInt(matchResult[1])
+          chapterTitle = matchResult[2] || `第${chapterId}章`
+        } else if (matchResult.length === 4) {
+          // 卷+章组合格式
+          chapterId = parseInt(matchResult[2])
+          chapterTitle = matchResult[3] || `第${matchResult[1]}卷第${chapterId}章`
+        }
+
+        const chapter = {
+          id: chapterId,
+          title: chapterTitle,
+          startLine: lineIndex,
+          volumeId: currentVolume ? currentVolume.id : null
+        }
+
+        result.chapters.push(chapter)
+        result.structure.push({
+          type: 'chapter',
+          id: chapterId,
+          title: chapterTitle,
+          volumeId: currentVolume ? currentVolume.id : null,
+          position: lineIndex
+        })
+
+        // 更新当前卷的章节计数
+        if (currentVolume) {
+          currentVolume.chapterCount++
+        }
+      }
+    }
+
+    lineIndex++
+  }
+
+  return result
 }
 
-// TXT文本分割章节
-function splitTxtChapters(content) {
-  const chapters = []
-  let currentChapter = {
-    title: '前言',
-    start: 0,
-    end: 0,
-    content: ''
+/**
+ * 解析EPUB格式小说的章节信息
+ * @param {Buffer} epubBuffer EPUB文件缓冲区
+ * @returns {Promise<Object>} 解析结果
+ */
+async function parseEpubChapters(epubBuffer) {
+  const JSZip = require('jszip')
+  // 将缓冲区转换为Node.js可读流（关键修复）
+  const stream = Readable.from(epubBuffer);
+  const zip = await JSZip.loadAsync(stream); // 使用Node.js流加载
+
+  // 查找EPUB的内容文件
+  let contentFile = null
+  const fileNames = Object.keys(zip.files)
+
+  // 尝试找到content.opf文件
+  for (const fileName of fileNames) {
+    if (fileName.toLowerCase().includes('content.opf')) {
+      contentFile = fileName
+      break
+    }
   }
-  let currentPosition = 0
-  
-  // 按换行分割文本行
-  const lines = content.split(/\r\n|\n|\r/)
-  
-  lines.forEach((line, lineIndex) => {
-    // 记录当前行在全文中的位置
-    const lineStart = currentPosition
-    const lineEnd = currentPosition + line.length + 1 // +1 是换行符长度
-    currentPosition = lineEnd
-    
-    // 判断是否为章节标题行
-    const isChapterTitle = isChapterTitleLine(line)
-    
-    if (isChapterTitle && chapters.length > 0) {
-      // 结束当前章节
-      currentChapter.end = lineStart
-      currentChapter.content = content.substring(currentChapter.start, currentChapter.end)
-      chapters.push(currentChapter)
-      
-      // 开始新章节
-      currentChapter = {
-        title: getChapterTitle(line),
-        start: lineStart,
-        end: lineEnd,
-        content: ''
+
+  if (!contentFile) {
+    throw new Error('无法找到EPUB内容文件')
+  }
+
+  // 解析content.opf获取章节信息
+  const contentData = await zip.file(contentFile).async('string')
+  const $ = cheerio.load(contentData, {
+    xmlMode: true
+  })
+
+  const result = {
+    volumes: [],
+    chapters: [],
+    structure: []
+  }
+
+  let currentVolume = null
+  let chapterIndex = 0
+
+  // 解析spine获取章节顺序
+  $('spine itemref').each((i, elem) => {
+    const idref = $(elem).attr('idref')
+
+    // 查找对应的item
+    const item = $(`item[id="${idref}"]`)
+    const href = item.attr('href')
+    const title = item.attr('title') || `第${i+1}章`
+
+    // 判断是否为卷
+    let isVolume = false
+    let volumeMatch = null
+
+    if (title) {
+      for (const pattern of VOLUME_PATTERNS) {
+        volumeMatch = title.match(pattern)
+        if (volumeMatch) {
+          isVolume = true
+          break
+        }
       }
-    } else if (isChapterTitle && chapters.length === 0) {
-      // 第一个章节标题
-      currentChapter.title = getChapterTitle(line)
-      currentChapter.start = lineStart
+    }
+
+    if (isVolume) {
+      const volumeId = volumeMatch ? parseInt(volumeMatch[1]) : i + 1
+      currentVolume = {
+        id: volumeId,
+        title,
+        href,
+        chapterCount: 0
+      }
+      result.volumes.push(currentVolume)
+      result.structure.push({
+        type: 'volume',
+        id: volumeId,
+        title,
+        href,
+        position: i
+      })
+    } else {
+      // 章节处理
+      let chapterId = i + 1
+      let chapterTitle = title
+
+      // 尝试从标题中提取章节号
+      if (title) {
+        for (const pattern of CHAPTER_PATTERNS) {
+          const chapterMatch = title.match(pattern)
+          if (chapterMatch && chapterMatch[1]) {
+            chapterId = parseInt(chapterMatch[1])
+            break
+          }
+        }
+      }
+
+      const chapter = {
+        id: chapterId,
+        title: chapterTitle,
+        href,
+        position: i,
+        volumeId: currentVolume ? currentVolume.id : null
+      }
+
+      result.chapters.push(chapter)
+      result.structure.push({
+        type: 'chapter',
+        id: chapterId,
+        title: chapterTitle,
+        href,
+        volumeId: currentVolume ? currentVolume.id : null,
+        position: i
+      })
+
+      if (currentVolume) {
+        currentVolume.chapterCount++
+      }
+
+      chapterIndex++
     }
   })
-  
-  // 添加最后一个章节
-  currentChapter.end = content.length
-  currentChapter.content = content.substring(currentChapter.start, currentChapter.end)
-  chapters.push(currentChapter)
-  
-  // 如果没有识别到任何章节，作为单章节处理
-  if (chapters.length === 1 && chapters[0].title === '前言') {
-    chapters[0].title = '全文'
-  }
-  
-  return chapters
+
+  return result
 }
 
-// 解析EPUB章节（EPUB本身包含章节结构）
-function parseEpubChapters(content) {
-  // 实际项目中需要解析EPUB的opf文件和html内容
-  // 这里简化处理，假设content是章节数组
-  if (Array.isArray(content)) {
-    return content.map((chapter, index) => ({
-      title: chapter.title || `第${index + 1}章`,
-      start: chapter.start || 0,
-      end: chapter.end || 0,
-      content: chapter.content || ''
-    }))
-  }
-  
-  // 处理失败时默认按TXT方式分割
-  return splitTxtChapters(content)
+/**
+ * 解析PDF格式小说的章节信息
+ * @param {Buffer} pdfBuffer PDF文件缓冲区
+ * @returns {Promise<Object>} 解析结果
+ */
+async function parsePdfChapters(pdfBuffer) {
+  const data = await pdfParse(pdfBuffer)
+  const content = data.text
+
+  // PDF解析逻辑类似TXT，但需要处理分页符
+  const lines = content.split(/\r?\n|\f/) // 处理换行和分页符
+    .map(line => line.trim())
+    .filter(line => line.length > 2 && line.length < 50)
+
+  // 复用TXT解析逻辑
+  const result = parseTxtChapters(lines.join('\n'))
+
+  // 补充PDF特有的页码信息
+  result.pages = data.numpages
+
+  return result
 }
 
-// 判断是否为章节标题行
-function isChapterTitleLine(line) {
-  // 过滤过短的行（至少2个字符）
-  if (line.trim().length < 2) return false
-  
-  // 测试是否匹配任何一种章节标题模式
-  return CHAPTER_PATTERNS.some(pattern => pattern.test(line.trim()))
-}
+/**
+ * 主函数：根据文件类型解析章节信息
+ */
+exports.main = async (event, context) => {
+  try {
+    const {
+      docId,
+      fileType = 'TXT',
+      fileUrl
+    } = event
 
-// 提取章节标题文本
-function getChapterTitle(line) {
-  const trimmedLine = line.trim()
-  
-  for (const pattern of CHAPTER_PATTERNS) {
-    const match = trimmedLine.match(pattern)
-    if (match) {
-      // 如果有副标题则返回副标题，否则返回完整匹配
-      return match[1] || match[0]
+    if (!docId || !fileType || !fileUrl) {
+      return {
+        code: 400,
+        message: '参数不完整',
+        success: false
+      }
     }
-  }
-  
-  return trimmedLine
-}
 
-// 保存章节信息到数据库
-async function saveChaptersToDB({ docId, openid, chapters, totalChapters }) {
-  // 更新文档表中的总章节数
-  await db.collection('documents')
-    .where({ _id: docId, openid })
-    .update({
+    // 1. 从云存储下载文件
+    // const doc = await db.collection('documents')
+    //   .where({
+    //     _id: docId,
+    //     openid
+    //   })
+    //   .get()
+
+    // if (doc.data.length === 0) {
+    //   return {
+    //     code: 404,
+    //     message: '文档不存在',
+    //     success: false
+    //   }
+    // }
+
+    // const fileUrl = doc.data[0].fileUrl
+    const downloadResult = await cloud.downloadFile({
+      fileID: fileUrl
+    })
+    const fileContent = downloadResult.fileContent
+
+    // 2. 根据文件类型解析章节
+    let chaptersResult = null
+
+    switch (fileType.toUpperCase()) {
+      case 'TXT':
+        chaptersResult = parseTxtChapters(fileContent.toString('utf8'))
+        break
+      case 'EPUB':
+        chaptersResult = await parseEpubChapters(fileContent)
+        break
+      case 'PDF':
+        chaptersResult = await parsePdfChapters(fileContent)
+        break
+      default:
+        return {
+          code: 400, message: '不支持的文件类型', success: false
+        }
+    }
+
+    // 3. 保存章节信息到数据库
+    await db.collection('books').doc(docId).update({
       data: {
-        totalChapters,
-        hasChapters: true,
+        chapterInfo: chaptersResult,
+        totalChapters: chaptersResult.chapters.length,
+        totalVolumes: chaptersResult.volumes.length,
         updateTime: db.serverDate()
       }
     })
-  
-  // 先删除该文档已有的章节信息（如果有）
-  await db.collection('chapters')
-    .where({ docId, openid })
-    .remove()
-  
-  // 批量添加章节信息
-  if (chapters.length > 0) {
-    const batchSize = 50
-    for (let i = 0; i < chapters.length; i += batchSize) {
-      const batch = db.batch()
-      const batchChapters = chapters.slice(i, i + batchSize)
-      
-      batchChapters.forEach((chapter, index) => {
-        batch.add({
-          data: {
-            docId,
-            openid,
-            chapterIndex: i + index, // 章节序号
-            title: chapter.title,
-            start: chapter.start,
-            end: chapter.end,
-            createTime: db.serverDate()
-          }
-        })
-      })
-      
-      await batch.commit()
+
+    return {
+      code: 200,
+      data: chaptersResult,
+      message: '章节解析成功',
+      success: true
+    }
+  } catch (err) {
+    console.error('章节解析失败:', err)
+    return {
+      code: 500,
+      message: '章节解析失败',
+      error: err.message,
+      success: false
     }
   }
 }

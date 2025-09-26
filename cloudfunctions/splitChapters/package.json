@@ -9,6 +9,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "cheerio": "^1.1.2",
+    "jszip": "^3.10.1",
+    "pdf-parse": "^1.1.1",
     "wx-server-sdk": "~3.0.1"
   }
 }

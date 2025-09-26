@@ -30,10 +30,6 @@ exports.main = async function (event = {}, context) {
     await db.collection('notes')
       .where({ docId, openid })
       .remove()
-    // 同时删除关联的书籍记录
-    await db.collection('readingRecords')
-      .where({ docId, openid })
-      .remove()
     
     return { code: 200, message: '书籍已删除', success: true }
   } catch (error) {

@@ -1,4 +1,6 @@
-import { booksPath } from "./utils/index";
+import {
+  booksPath
+} from "./utils/index";
 
 // app.js
 App({
@@ -67,15 +69,41 @@ App({
       fs.accessSync(booksPath);
       console.log("目录已存在，无需创建。");
     } catch (e) {
-      fs.mkdirSync(booksPath, { recursive: true });
+      fs.mkdirSync(booksPath, {
+        recursive: true
+      });
       console.log("目录创建成功！");
     }
   },
 
   async getLocalFileList() {
-    const fs = wx.getFileSystemManager();
-    const fileList = await fs.readdirSync(booksPath);
-    this.globalData.cacheFileList = fileList;
-    console.log("getLocalFileList", fileList);
+    try {
+      const fs = wx.getFileSystemManager();
+      const fileList = await fs.readdirSync(booksPath);
+      this.globalData.cacheFileList = fileList;
+      console.log("getLocalFileList", fileList);
+    } catch (error) {
+      console.error("获取缓存文件失败：", error);
+    }
   },
+  async deleteLocalFile(docId) {
+    try {
+      // 删除缓存
+      const fs = wx.getFileSystemManager();
+      await fs.unlinkSync(`${booksPath}/${docId}`);
+      await this.getLocalFileList();
+    } catch (error) {
+      console.error("删除缓存失败：", error);
+    }
+  },
+  async addLocalFile(docId, path) {
+    const fs = wx.getFileSystemManager();
+    try {
+      console.log("addLocalFile", docId, path);
+      await fs.saveFileSync(path, `${booksPath}/${docId}`);
+      await this.getLocalFileList();
+    } catch (error) {
+      console.error("文件缓存失败：", error);
+    }
+  }
 });

@@ -1,5 +1,7 @@
 // components/upload/index.js
-import { booksPath } from "../../utils/index";
+import {
+  booksPath
+} from "../../utils/index";
 
 Component({
   options: {
@@ -44,10 +46,14 @@ Component({
       wx.chooseMessageFile({
         count: 1,
         type: "file",
+        extension: that.data.supportFormats,
         success(res) {
           console.log(res);
           const file = res.tempFiles[0];
-          const { name, size } = file;
+          const {
+            name,
+            size
+          } = file;
           // 1. 验证文件大小（不超过50MB）
           if (size > 50 * 1024 * 1024) {
             wx.showToast({
@@ -80,23 +86,22 @@ Component({
           that.uploadToCloud(file);
         },
       });
-      // event.detail.callback(true)
     },
 
     // 上传到云存储并调用云函数记录
     async uploadToCloud(file) {
       const that = this;
+      const app = getApp();
       const info = await wx.cloud.callFunction({
         name: "getWXContext",
       });
       const openid = info.result?.openid;
-      // const file = event.detail.file
       console.log("uploadToCloud", file, openid);
-
-      let path = file.path;
-      const name = file.name;
-      const size = file.size;
-
+      const {
+        path,
+        name,
+        size
+      } = file;
       const fileExt = name.split(".").pop().toLowerCase();
       const fileName = name.split(".").shift();
       if (!openid) {
@@ -111,53 +116,42 @@ Component({
         return;
       }
 
-      // 1. 生成云存储路径
+      // 云存储路径
       const cloudPath = `books/${openid}/${Date.now()}-${fileName}`;
 
-      // 2. 创建上传任务
+      // 创建上传任务
       const uploadTask = wx.cloud.uploadFile({
         cloudPath,
         filePath: path,
         success: async res => {
-          console.log('success', res)
-
-          wx.cloud.callFunction({
-            name: 'uploadBook',
-            data: {
-              fileUrl: res.fileID,
-              fileName: fileName,
-              fileType: fileExt.toUpperCase(),
-              fileSize: size
-            }
-          }).then(docResult => {
-            // 处理云函数返回结果
-            const {
-              code
-            } = docResult.result
-            console.log('wx.cloud.callFunction', docResult)
-            if (code === 200) {
-              this.setLocalFile(docResult.result.data.docId, path)
-              that.setData({
-                show: false,
-                showProgress: false,
-                uploadComplete: true,
-                uploadSuccess: true,
-              })
-              that.triggerEvent('onOk', {}, {});
-              that.setData({
-                progress: 0
-              })
-            } else {
-              that.setData({
-                show: false,
-                showProgress: false,
-                uploadComplete: true,
-                uploadSuccess: false,
-                progress: 0
-              })
-            }
-          }).catch(err => {
-            console.error('上传失败:', err)
+          try {
+            console.log('uploadFile success', res)
+            // 上传DB
+            const bookResult = await wx.cloud.callFunction({
+              name: 'uploadBook',
+              data: {
+                fileUrl: res.fileID,
+                fileName: fileName,
+                fileType: fileExt.toUpperCase(),
+                fileSize: size
+              }
+            })
+            if (!bookResult.result._id) throw bookResult;
+            console.log('wx.cloud.callFunction', bookResult, file)
+            // 本地缓存
+            await app.addLocalFile(bookResult.result._id, path)
+            that.setData({
+              show: false,
+              showProgress: false,
+              uploadComplete: true,
+              uploadSuccess: true,
+            })
+            that.triggerEvent('onOk', {}, {});
+            that.setData({
+              progress: 0
+            });
+          } catch (error) {
+            console.error(error)
             that.setData({
               show: false,
               showProgress: false,
@@ -170,11 +164,12 @@ Component({
               icon: 'none',
               duration: 2000
             })
-          })
+          }
         },
         fail: (err) => {
           console.error('wx.cloud.uploadFile fail', err)
           that.setData({
+            show: false,
             showProgress: false,
             uploadComplete: true,
             uploadSuccess: false,
@@ -216,22 +211,5 @@ Component({
         });
       }
     },
-
-    async setLocalFile(id, path) {
-      const fs = wx.getFileSystemManager();
-      try {
-        const res = await fs.saveFileSync(path, `${booksPath}/${id}`);
-        console.log("文件已保存", res + '');
-        await getApp().getLocalFileList();
-        console.log("success", booksPath);
-      } catch (error) {
-        console.log("error setLocalFile：", error);
-        wx.showToast({
-          title: "文件下载失败，请尝试重新下载！",
-          icon: "none",
-          duration: 2000,
-        });
-      }
-    }
   },
 });

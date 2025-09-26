@@ -1,44 +1,71 @@
 <!--index.wxml-->
 <view>
-  <van-nav-bar title="TEST" placeholder>
-    <upload bind:onOk="getList" slot="left">
-      <text slot="button">导入</text>
-    </upload>
-  </van-nav-bar>
-  <!-- <van-search value="{{ value }}" placeh older="请输入搜索关键词" /> -->
-  <van-loading type="spinner" size="30px" wx:if="{{ loading }}" custom-class="list-loading">加载中...
-  </van-loading>
-  <van-empty description="暂无书籍" wx:if="{{ !loading && list.length === 0 }}">
-    <upload bind:onOk="getList">
-      <van-button round type="danger" slot="button">导入</van-button>
-    </upload>
-  </van-empty>
-  <van-swipe-cell right-width="{{ 65 }}" wx:key="_id" wx:for="{{ list }}">
-    <van-cell data-item="{{ item }}" custom-class="book-item" bind:click="gotoDetail" center clickable use-label-slot>
-      <view slot="icon">
-        <van-icon name="{{ '/statics/images/' + item.type + '-1.png' }}" size="88px" />
-      </view>
-      <view slot="title">
-        <view class="van-cell-text">{{ item.title }}</view>
-      </view>
-      <view slot="label">
-        <van-tag slot="tags" type="primary" color="{{  item.isLocal ? '#7232dd' : '#0083ff'}}"
-          custom-class="book-item-tag">{{ item.isLocal ? '本地' : '云端' }}
-        </van-tag>
-      </view>
-      <view slot="right-icon" data-item="{{ item }}" catch:tap="download" wx:if="{{ !item.isLocal }}">
-        <van-button icon="/statics/images/download.svg" custom-class="book-item-down" />
-      </view>
-    </van-cell>
-    <view slot="right" class="book-item-delete" data-item="{{ item }}" bind:tap="delete">删除
-    </view>
-  </van-swipe-cell>
-  <van-dialog id="van-dialog" />
-  <van-notify id="van-notify" />
-  <van-overlay show="{{ downloadLoading }}">
-    <van-loading type="spinner" size="30px" custom-class="download-loading">
-      <span>下载中...</span>
-    </van-loading>
-  </van-overlay>
-  <footer active="index" />
+	<van-nav-bar title="TEST" placeholder>
+		<upload bind:onOk="getList" slot="left">
+			<text slot="button">导入</text>
+		</upload>
+	</van-nav-bar>
+	<!-- <van-search value="{{ value }}" placeh older="请输入搜索关键词" /> -->
+	<van-loading
+	 type="spinner"
+	 size="30px"
+	 wx:if="{{ loading }}"
+	 custom-class="list-loading"
+	>加载中...
+	</van-loading>
+	<van-empty description="暂无书籍" wx:if="{{ !loading && list.length === 0 }}">
+		<upload bind:onOk="getList">
+			<van-button round type="danger" slot="button">导入</van-button>
+		</upload>
+	</van-empty>
+	<van-swipe-cell right-width="{{ 65 }}" wx:key="_id" wx:for="{{ list }}">
+		<van-cell
+		 data-item="{{ item }}"
+		 custom-class="book-item"
+		 bind:click="gotoDetail"
+		 center
+		 clickable
+		 use-label-slot
+		>
+			<view slot="icon">
+				<van-icon name="{{ '/statics/images/' + item.type + '-1.png' }}" size="88px" />
+			</view>
+			<view slot="title">
+				<view class="van-cell-text">{{ item.title }}</view>
+			</view>
+			<view slot="label">
+				<van-tag
+				 slot="tags"
+				 type="primary"
+				 color="{{  item.isLocal ? '#7232dd' : '#0083ff'}}"
+				 custom-class="book-item-tag"
+				>{{ item.isLocal ? '本地' : '云端' }}
+				</van-tag>
+			</view>
+			<view
+			 slot="right-icon"
+			 data-item="{{ item }}"
+			 catch:tap="download"
+			 wx:if="{{ !item.isLocal }}"
+			>
+				<van-button icon="/statics/images/download.svg" custom-class="book-item-down" />
+			</view>
+		</van-cell>
+		<view
+		 slot="right"
+		 class="book-item-delete"
+		 data-item="{{ item }}"
+		 bind:tap="delete"
+		>删除
+		</view>
+	</van-swipe-cell>
+	<van-dialog id="van-dialog" />
+	<van-notify id="van-notify" />
+	<van-overlay show="{{ downloadLoading }}">
+		<van-loading type="spinner" size="30px" custom-class="download-loading">
+			<span>下载中...</span>
+		</van-loading>
+	</van-overlay>
+	<footer active="index" />
 </view>
+

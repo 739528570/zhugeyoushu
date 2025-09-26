@@ -29,12 +29,21 @@ exports.main = async function (event, context) {
       },
     });
 
+    await cloud.callFunction({
+      name: 'splitChapters',
+      data: {
+        docId: result._id,
+        fileType,
+        fileUrl
+      }
+    })
+    console.log(result)
     return result;
   } catch (err) {
     console.error("上传失败:", err);
     return {
       code: 500,
-      message: "服务器错误: upload",
+      message: "上传失败",
       success: false,
     };
   }
