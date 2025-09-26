@@ -4,7 +4,7 @@ cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 })
 const db = cloud.database()
-const cheerio = require('cheerio')
+// const cheerio = require('cheerio')
 const pdfParse = require('pdf-parse')
 const {
   Readable
@@ -138,126 +138,126 @@ function parseTxtChapters(content) {
  * @param {Buffer} epubBuffer EPUB文件缓冲区
  * @returns {Promise<Object>} 解析结果
  */
-async function parseEpubChapters(epubBuffer) {
-  const JSZip = require('jszip')
-  // 将缓冲区转换为Node.js可读流（关键修复）
-  const stream = Readable.from(epubBuffer);
-  const zip = await JSZip.loadAsync(stream); // 使用Node.js流加载
+// async function parseEpubChapters(epubBuffer) {
+//   const JSZip = require('jszip')
+//   // 将缓冲区转换为Node.js可读流（关键修复）
+//   const stream = Readable.from(epubBuffer);
+//   const zip = await JSZip.loadAsync(stream); // 使用Node.js流加载
 
-  // 查找EPUB的内容文件
-  let contentFile = null
-  const fileNames = Object.keys(zip.files)
+//   // 查找EPUB的内容文件
+//   let contentFile = null
+//   const fileNames = Object.keys(zip.files)
 
-  // 尝试找到content.opf文件
-  for (const fileName of fileNames) {
-    if (fileName.toLowerCase().includes('content.opf')) {
-      contentFile = fileName
-      break
-    }
-  }
+//   // 尝试找到content.opf文件
+//   for (const fileName of fileNames) {
+//     if (fileName.toLowerCase().includes('content.opf')) {
+//       contentFile = fileName
+//       break
+//     }
+//   }
 
-  if (!contentFile) {
-    throw new Error('无法找到EPUB内容文件')
-  }
+//   if (!contentFile) {
+//     throw new Error('无法找到EPUB内容文件')
+//   }
 
-  // 解析content.opf获取章节信息
-  const contentData = await zip.file(contentFile).async('string')
-  const $ = cheerio.load(contentData, {
-    xmlMode: true
-  })
+//   // 解析content.opf获取章节信息
+//   const contentData = await zip.file(contentFile).async('string')
+//   const $ = cheerio.load(contentData, {
+//     xmlMode: true
+//   })
 
-  const result = {
-    volumes: [],
-    chapters: [],
-    structure: []
-  }
+//   const result = {
+//     volumes: [],
+//     chapters: [],
+//     structure: []
+//   }
 
-  let currentVolume = null
-  let chapterIndex = 0
+//   let currentVolume = null
+//   let chapterIndex = 0
 
-  // 解析spine获取章节顺序
-  $('spine itemref').each((i, elem) => {
-    const idref = $(elem).attr('idref')
+//   // 解析spine获取章节顺序
+//   $('spine itemref').each((i, elem) => {
+//     const idref = $(elem).attr('idref')
 
-    // 查找对应的item
-    const item = $(`item[id="${idref}"]`)
-    const href = item.attr('href')
-    const title = item.attr('title') || `第${i+1}章`
+//     // 查找对应的item
+//     const item = $(`item[id="${idref}"]`)
+//     const href = item.attr('href')
+//     const title = item.attr('title') || `第${i+1}章`
 
-    // 判断是否为卷
-    let isVolume = false
-    let volumeMatch = null
+//     // 判断是否为卷
+//     let isVolume = false
+//     let volumeMatch = null
 
-    if (title) {
-      for (const pattern of VOLUME_PATTERNS) {
-        volumeMatch = title.match(pattern)
-        if (volumeMatch) {
-          isVolume = true
-          break
-        }
-      }
-    }
+//     if (title) {
+//       for (const pattern of VOLUME_PATTERNS) {
+//         volumeMatch = title.match(pattern)
+//         if (volumeMatch) {
+//           isVolume = true
+//           break
+//         }
+//       }
+//     }
 
-    if (isVolume) {
-      const volumeId = volumeMatch ? parseInt(volumeMatch[1]) : i + 1
-      currentVolume = {
-        id: volumeId,
-        title,
-        href,
-        chapterCount: 0
-      }
-      result.volumes.push(currentVolume)
-      result.structure.push({
-        type: 'volume',
-        id: volumeId,
-        title,
-        href,
-        position: i
-      })
-    } else {
-      // 章节处理
-      let chapterId = i + 1
-      let chapterTitle = title
+//     if (isVolume) {
+//       const volumeId = volumeMatch ? parseInt(volumeMatch[1]) : i + 1
+//       currentVolume = {
+//         id: volumeId,
+//         title,
+//         href,
+//         chapterCount: 0
+//       }
+//       result.volumes.push(currentVolume)
+//       result.structure.push({
+//         type: 'volume',
+//         id: volumeId,
+//         title,
+//         href,
+//         position: i
+//       })
+//     } else {
+//       // 章节处理
+//       let chapterId = i + 1
+//       let chapterTitle = title
 
-      // 尝试从标题中提取章节号
-      if (title) {
-        for (const pattern of CHAPTER_PATTERNS) {
-          const chapterMatch = title.match(pattern)
-          if (chapterMatch && chapterMatch[1]) {
-            chapterId = parseInt(chapterMatch[1])
-            break
-          }
-        }
-      }
+//       // 尝试从标题中提取章节号
+//       if (title) {
+//         for (const pattern of CHAPTER_PATTERNS) {
+//           const chapterMatch = title.match(pattern)
+//           if (chapterMatch && chapterMatch[1]) {
+//             chapterId = parseInt(chapterMatch[1])
+//             break
+//           }
+//         }
+//       }
 
-      const chapter = {
-        id: chapterId,
-        title: chapterTitle,
-        href,
-        position: i,
-        volumeId: currentVolume ? currentVolume.id : null
-      }
+//       const chapter = {
+//         id: chapterId,
+//         title: chapterTitle,
+//         href,
+//         position: i,
+//         volumeId: currentVolume ? currentVolume.id : null
+//       }
 
-      result.chapters.push(chapter)
-      result.structure.push({
-        type: 'chapter',
-        id: chapterId,
-        title: chapterTitle,
-        href,
-        volumeId: currentVolume ? currentVolume.id : null,
-        position: i
-      })
+//       result.chapters.push(chapter)
+//       result.structure.push({
+//         type: 'chapter',
+//         id: chapterId,
+//         title: chapterTitle,
+//         href,
+//         volumeId: currentVolume ? currentVolume.id : null,
+//         position: i
+//       })
 
-      if (currentVolume) {
-        currentVolume.chapterCount++
-      }
+//       if (currentVolume) {
+//         currentVolume.chapterCount++
+//       }
 
-      chapterIndex++
-    }
-  })
+//       chapterIndex++
+//     }
+//   })
 
-  return result
-}
+//   return result
+// }
 
 /**
  * 解析PDF格式小说的章节信息
@@ -331,7 +331,7 @@ exports.main = async (event, context) => {
         chaptersResult = parseTxtChapters(fileContent.toString('utf8'))
         break
       case 'EPUB':
-        chaptersResult = await parseEpubChapters(fileContent)
+        // chaptersResult = await parseEpubChapters(fileContent)
         break
       case 'PDF':
         chaptersResult = await parsePdfChapters(fileContent)
