@@ -1,6 +1,4 @@
-import {
-  booksPath
-} from "./utils/index";
+import { booksPath } from "./utils/index";
 
 // app.js
 App({
@@ -70,12 +68,11 @@ App({
       console.log("目录已存在，无需创建。");
     } catch (e) {
       fs.mkdirSync(booksPath, {
-        recursive: true
+        recursive: true,
       });
       console.log("目录创建成功！");
     }
   },
-
   async getLocalFileList() {
     try {
       const fs = wx.getFileSystemManager();
@@ -86,24 +83,66 @@ App({
       console.error("获取缓存文件失败：", error);
     }
   },
-  async deleteLocalFile(docId) {
+  async deleteLocalFile(bookId) {
     try {
       // 删除缓存
       const fs = wx.getFileSystemManager();
-      await fs.unlinkSync(`${booksPath}/${docId}`);
+      await fs.unlinkSync(`${booksPath}/${bookId}`);
       await this.getLocalFileList();
     } catch (error) {
       console.error("删除缓存失败：", error);
     }
   },
-  async addLocalFile(docId, path) {
+  async addLocalFile(bookId, path) {
     const fs = wx.getFileSystemManager();
     try {
-      console.log("addLocalFile", docId, path);
-      await fs.saveFileSync(path, `${booksPath}/${docId}`);
+      console.log("addLocalFile", bookId, path);
+      await fs.saveFileSync(path, `${booksPath}/${bookId}`);
       await this.getLocalFileList();
     } catch (error) {
       console.error("文件缓存失败：", error);
     }
-  }
+  },
+  async getStorageChapter(bookId) {
+    try {
+      const chapters = (await wx.getStorageSync("chapters")) || {};
+      return chapters[bookId] ? chapters[bookId] : {};
+    } catch (error) {
+      console.log("addStorageChapter", error);
+    }
+  },
+  async addStorageChapter(bookId, chapter) {
+    try {
+      const chapters = (await wx.getStorageSync("chapters")) || {};
+      chapters[bookId] = chapter;
+      await wx.setStorageSync("chapters", chapters);
+    } catch (error) {
+      console.log("addStorageChapter", error);
+    }
+  },
+  async deleteStorageChapter(bookId) {
+    try {
+      let chapters = (await wx.getStorageSync("chapters")) || {};
+      if (chapters[bookId]) {
+        delete chapters[bookId];
+      }
+      await wx.setStorageSync("chapters", chapters);
+    } catch (error) {
+      console.log("deleteStorageChapter", error);
+    }
+  },
+  async updateStorageBooks(books) {
+    try {
+      await wx.setStorageSync("books", books);
+    } catch (error) {
+      console.log("updateStorageBooks", error);
+    }
+  },
+  async getStorageBooks() {
+    try {
+      return (await wx.getStorageSync("books")) || [];
+    } catch (error) {
+      console.log("getStorageBooks", error);
+    }
+  },
 });

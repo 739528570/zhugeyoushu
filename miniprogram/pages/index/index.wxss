@@ -25,5 +25,5 @@
 }
 .download-loading {
   display: flex !important;
-  margin-top: 50%;
+  margin-top: 60%;
 }

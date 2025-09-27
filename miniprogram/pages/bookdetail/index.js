@@ -1,6 +1,5 @@
 // pages/bookdetail/index.js
 import { booksPath } from "../../utils/index";
-
 Page({
   /**
    * 页面的初始数据
@@ -20,29 +19,29 @@ Page({
       });
       let content = "";
       const res = await wx.cloud.callFunction({
-        name: "books",
-        data: {
-          cmd: "getDetail",
-          id,
-        },
+        name: "getBooks",
+        data: { bookId: id },
       });
-      console.log("**load getDetail", res);
+
       const cacheFileList = getApp().globalData.cacheFileList ?? [];
-      const book = res.result.data?.[0] || {};
+      let book = res.result.data?.books?.[0] || {};
+      console.log("getDetail", res, cacheFileList);
 
       if (cacheFileList.length && cacheFileList.includes(book._id)) {
         const fs = wx.getFileSystemManager();
-        content = await fs.readFileSync(`${booksPath}/${book._id}`, 'utf-8', 0, 1000);
-        console.log('readFileSync', content)
+        console.log(`检测到文件编码: ${book.encoding}`);
+        const buffer = await fs.readFileSync(`${booksPath}/${book._id}`);
+        const decoder = new TextDecoder(book.encoding);
+        content = decoder.decode(buffer);
       } else {
-        const res1 = await wx.cloud.callFunction({
-          name: "books",
-          data: {
-            cmd: "parse",
-            docId: id,
-          },
-        });
-        content = res1.result.data.content;
+        // const res1 = await wx.cloud.callFunction({
+        //   name: "books",
+        //   data: {
+        //     cmd: "parse",
+        //     bookId: id,
+        //   },
+        // });
+        // content = res1.result.data.content;
       }
 
       this.setData({
@@ -51,7 +50,7 @@ Page({
         loading: false,
       });
     } catch (error) {
-      console.log('读取文件失败', error)
+      console.log("读取文件失败", error);
       this.setData({
         loading: false,
       });

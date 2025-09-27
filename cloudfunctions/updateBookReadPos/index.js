@@ -12,16 +12,16 @@ exports.main = async function (params) {
   try {
     const wxContext = cloud.getWXContext();
     const openid = wxContext.OPENID;
-    const { docId, lastReadPos } = params;
+    const { bookId, lastReadPos } = params;
 
-    if (!openid || !docId === undefined || lastReadPos === undefined) {
+    if (!openid || !bookId === undefined || lastReadPos === undefined) {
       return { code: 400, message: "参数不完整", success: false };
     }
 
     // 验证书籍归属
     const doc = await db
       .collection("books")
-      .where({ _id: docId, openid })
+      .where({ _id: bookId, openid })
       .get();
 
     if (doc.data.length === 0) {
@@ -31,7 +31,7 @@ exports.main = async function (params) {
     // 更新阅读位置
     await db
       .collection("books")
-      .where({ _id: docId })
+      .where({ _id: bookId })
       .update({
         data: {
           lastReadPos,

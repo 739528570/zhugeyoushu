@@ -1,3 +1,8 @@
 /* components/upload/index.wxss */
 .upload-dialog {
 }
+
+.upload-loading {
+  display: flex !important;
+  margin-top: 60%;
+}

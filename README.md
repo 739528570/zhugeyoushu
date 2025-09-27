@@ -16,3 +16,6 @@
 3、缓存
 
 4、弱网使用缓存
+5、小说编码格式GB2312、GBK 或 GB18030，wx.getFileSystemManager().readFile不支持
+6、小说过大会导致内存过载
+7、实现目录跳转

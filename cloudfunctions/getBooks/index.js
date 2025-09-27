@@ -8,7 +8,7 @@ exports.main = async function (event = {}, context) {
   try {
     const wxContext = cloud.getWXContext();
     const openid = wxContext.OPENID;
-    const { page = 1, size = 10, type = "" } = event;
+    const { page = 1, size = 10, type = "", bookId } = event;
 
     if (!openid) {
       return { code: 400, message: "用户标识不能为空", success: false };
@@ -19,10 +19,13 @@ exports.main = async function (event = {}, context) {
     if (type) {
       query = query.where({ type });
     }
+    if (bookId) {
+      query = query.where({ _id: bookId });
+    }
 
     // 分页查询
     const totalResult = await query.count();
-    const docs = await query
+    const books = await query
       .orderBy("updateTime", "desc")
       .skip((page - 1) * size)
       .limit(size)
@@ -31,7 +34,7 @@ exports.main = async function (event = {}, context) {
     return {
       code: 200,
       data: {
-        docs: docs.data,
+        books: books.data,
         total: totalResult.total,
         page,
         size,

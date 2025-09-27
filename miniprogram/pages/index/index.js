@@ -1,17 +1,16 @@
 // index.js
 import Dialog from "@vant/weapp/dialog/dialog";
-import {
-  booksPath
-} from "../../utils/index";
 Page({
   data: {
     list: [],
     total: 0,
     loading: true,
     downloadLoading: false,
+    loadingText: "缓存中",
   },
   async getList() {
     try {
+      const app = getApp();
       this.setData({
         loading: true,
       });
@@ -19,9 +18,12 @@ Page({
         name: "getBooks",
         data: {},
       });
-      const cacheFileList = getApp().globalData.cacheFileList ?? [];
-      let list = res.result.data?.docs || [];
+      const cacheFileList = app.globalData.cacheFileList ?? [];
+      let list = res.result.data?.books || [];
       const total = res.result.data?.total || 0;
+
+      // 缓存列表信息
+      await app.updateStorageBooks(list);
 
       if (cacheFileList.length) {
         list = list.map((item) => {
@@ -34,6 +36,7 @@ Page({
           return item;
         });
       }
+      console.log("getBooks", list);
 
       this.setData({
         list,
@@ -61,19 +64,25 @@ Page({
         title: "删除书籍",
         message: `确认删除 ${item.title} ?`,
       });
+      this.setData({
+        loadingText: "删除中",
+        downloadLoading: true,
+      });
       // 删除DB
       await wx.cloud.callFunction({
         name: "deleteBook",
         data: {
-          docId: item._id,
+          bookId: item._id,
         },
       });
       // 删除云存储
       await wx.cloud.deleteFile({
-        fileList: [item.fileUrl]
+        fileList: [item.fileUrl],
       });
       // 删除本地缓存
       await app.deleteLocalFile(item._id);
+      // 删除章节标题缓存
+      await app.deleteStorageChapter(item._id);
     } catch (error) {
       console.error("error", error);
       wx.showToast({
@@ -83,10 +92,16 @@ Page({
       });
     } finally {
       await that.getList();
+      this.setData({
+        downloadLoading: false,
+      });
     }
   },
   async gotoDetail(data) {
     try {
+      if (!data.target.dataset.item.isLocal) {
+        await this.download(data);
+      }
       wx.navigateTo({
         url: `/pages/bookdetail/index?id=${data.target.dataset.item._id}`,
       });
@@ -102,24 +117,35 @@ Page({
   async download(data) {
     try {
       this.setData({
-        downloadLoading: true
+        loadingText: "缓存中",
+        downloadLoading: true,
       });
       const item = data.currentTarget.dataset.item;
       const app = getApp();
       if (!item) return;
+      // 获取文章标题
+      const res = await wx.cloud.callFunction({
+        name: "getChapter",
+        data: { bookId: item._id },
+      });
+      const chapters = res.result.data?.chapters;
+      if (chapters?.length) {
+        await app.addStorageChapter(item._id, chapters);
+      }
       // 从云存储下载文件
       const file = await wx.cloud.downloadFile({
-        fileID: item.fileUrl
+        fileID: item.fileUrl,
       });
       // 本地缓存
       await app.addLocalFile(item._id, file.tempFilePath);
+      await this.getList();
       this.setData({
-        downloadLoading: false
+        downloadLoading: false,
       });
     } catch (error) {
       console.error("error", error);
       this.setData({
-        downloadLoading: false
+        downloadLoading: false,
       });
       wx.showToast({
         title: "缓存失败，请稍后重试！",

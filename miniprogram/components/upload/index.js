@@ -1,8 +1,5 @@
 // components/upload/index.js
-import {
-  booksPath
-} from "../../utils/index";
-
+import chardet from "chardet";
 Component({
   options: {
     multipleSlots: true, // 在组件定义时的选项中启用多slot支持
@@ -19,8 +16,6 @@ Component({
     show: false,
     // 上传进度
     progress: 0,
-    // 是否显示进度条
-    showProgress: false,
     // 当前上传的文件名
     uploadFileName: "",
     // 上传是否完成
@@ -33,6 +28,8 @@ Component({
     uploadTask: null,
     // 支持的文件格式
     supportFormats: ["txt", "epub", "pdf"],
+    uploadLoading: false,
+    loadingText: "上传中",
   },
 
   /**
@@ -41,7 +38,6 @@ Component({
   methods: {
     // 选择文件
     async chooseFile(event) {
-      if (this.data.showProgress) return;
       const that = this;
       wx.chooseMessageFile({
         count: 1,
@@ -50,10 +46,7 @@ Component({
         success(res) {
           console.log(res);
           const file = res.tempFiles[0];
-          const {
-            name,
-            size
-          } = file;
+          const { name, size } = file;
           // 1. 验证文件大小（不超过50MB）
           if (size > 50 * 1024 * 1024) {
             wx.showToast({
@@ -76,12 +69,12 @@ Component({
           }
           that.setData({
             show: true,
-            showProgress: true,
             uploadFileName: name,
-            progress: 0,
             uploadComplete: false,
             uploadSuccess: false,
             resultMessage: "",
+            uploadLoading: true,
+            loadingText: "上传中",
           });
           that.uploadToCloud(file);
         },
@@ -92,16 +85,12 @@ Component({
     async uploadToCloud(file) {
       const that = this;
       const app = getApp();
+      const fs = wx.getFileSystemManager();
       const info = await wx.cloud.callFunction({
         name: "getWXContext",
       });
       const openid = info.result?.openid;
-      console.log("uploadToCloud", file, openid);
-      const {
-        path,
-        name,
-        size
-      } = file;
+      const { path, name, size } = file;
       const fileExt = name.split(".").pop().toLowerCase();
       const fileName = name.split(".").shift();
       if (!openid) {
@@ -111,87 +100,101 @@ Component({
           duration: 2000,
         });
         that.setData({
-          showProgress: false,
+          uploadLoading: false,
         });
         return;
       }
 
       // 云存储路径
       const cloudPath = `books/${openid}/${Date.now()}-${fileName}`;
+      const arrayBuffer = await fs.readFileSync(path);
+      const uint8Array = new Uint8Array(arrayBuffer);
+      const encoding = chardet.detect(uint8Array)?.toLocaleLowerCase?.() || "utf8";
+      console.log("encoding", encoding);
 
       // 创建上传任务
       const uploadTask = wx.cloud.uploadFile({
         cloudPath,
         filePath: path,
-        success: async res => {
+        success: async (res) => {
           try {
-            console.log('uploadFile success', res)
+            console.log("uploadFile success", res);
             // 上传DB
             const bookResult = await wx.cloud.callFunction({
-              name: 'uploadBook',
+              name: "uploadBook",
               data: {
                 fileUrl: res.fileID,
                 fileName: fileName,
                 fileType: fileExt.toUpperCase(),
-                fileSize: size
-              }
-            })
-            if (!bookResult.result._id) throw bookResult;
-            console.log('wx.cloud.callFunction', bookResult, file)
+                fileSize: size,
+                encoding
+              },
+            });
+            const bookId = bookResult.result._id;
+            if (!bookId) throw bookResult;
+            that.setData({
+              loadingText: "提取文章标题中",
+            });
+            // 章节标题提取
+            const resp = await wx.cloud.callFunction({
+              name: "splitChapters",
+              data: {
+                bookId,
+                fileType: fileExt.toUpperCase(),
+                fileUrl: res.fileID,
+              },
+            });
+
             // 本地缓存
-            await app.addLocalFile(bookResult.result._id, path)
+            await app.addLocalFile(bookId, path);
+            await app.addStorageChapter(bookId, resp.result.data || []);
             that.setData({
               show: false,
-              showProgress: false,
+              uploadLoading: false,
               uploadComplete: true,
               uploadSuccess: true,
-            })
-            that.triggerEvent('onOk', {}, {});
-            that.setData({
-              progress: 0
             });
+            that.triggerEvent("onOk", {}, {});
           } catch (error) {
-            console.error(error)
+            console.error(error);
             that.setData({
               show: false,
-              showProgress: false,
+              uploadLoading: false,
               uploadComplete: true,
               uploadSuccess: false,
-              progress: 0
-            })
+            });
             wx.showToast({
-              title: '上传失败，请稍后重试',
-              icon: 'none',
-              duration: 2000
-            })
+              title: "上传失败，请稍后重试",
+              icon: "none",
+              duration: 2000,
+            });
           }
         },
         fail: (err) => {
-          console.error('wx.cloud.uploadFile fail', err)
+          console.error("wx.cloud.uploadFile fail", err);
           that.setData({
             show: false,
-            showProgress: false,
+            uploadLoading: false,
             uploadComplete: true,
             uploadSuccess: false,
-            progress: 0
-          })
+          });
           wx.showToast({
-            title: '上传失败，请稍后重试',
-            icon: 'none',
-            duration: 2000
-          })
+            title: "上传失败，请稍后重试",
+            icon: "none",
+            duration: 2000,
+          });
         },
-      })
+      });
 
       // 保存任务对象用于取消上传
       that.setData({
-        uploadTask
-      })
-      uploadTask.onProgressUpdate((res) => {
-        that.setData({
-          progress: res.progress
-        })
+        uploadTask,
       });
+      // uploadTask.onProgressUpdate((res) => {
+      //   that.setData({
+      //     progress: res.progress,
+      //   });
+      // });
     },
 
     // 取消上传
@@ -199,10 +202,9 @@ Component({
       if (this.data.uploadTask) {
         this.data.uploadTask.abort();
         this.setData({
-          showProgress: false,
+          uploadLoading: false,
           uploadTask: null,
           uploadFileName: "",
-          progress: 0,
         });
         wx.showToast({
           title: "已取消上传",

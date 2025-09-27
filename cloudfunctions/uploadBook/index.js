@@ -9,7 +9,7 @@ exports.main = async function (event, context) {
     const wxContext = cloud.getWXContext();
     const openid = wxContext.OPENID;
     console.log('upload', event)
-    const { fileName, fileType, fileSize, fileUrl, coverUrl = "" } = event;
+    const { fileName, fileType, fileSize, fileUrl, coverUrl = "", encoding } = event;
     // 验证必填参数
     if (!openid || !fileName || !fileType || !fileSize || !fileUrl) {
       return { code: 400, message: "缺少必要的书籍信息", success: false };
@@ -22,6 +22,7 @@ exports.main = async function (event, context) {
         type: fileType,
         size: fileSize,
         fileUrl: fileUrl,
+        encoding,
         coverUrl,
         lastReadPos: 0, // 初始阅读位置
         createTime: db.serverDate(),
@@ -29,14 +30,14 @@ exports.main = async function (event, context) {
       },
     });
 
-    await cloud.callFunction({
-      name: 'splitChapters',
-      data: {
-        docId: result._id,
-        fileType,
-        fileUrl
-      }
-    })
+    // await cloud.callFunction({
+    //   name: 'splitChapters',
+    //   data: {
+    //     bookId: result._id,
+    //     fileType,
+    //     fileUrl
+    //   }
+    // })
     console.log(result)
     return result;
   } catch (err) {

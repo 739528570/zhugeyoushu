@@ -6,20 +6,20 @@ const db = cloud.database()
 // 云函数入口函数
 exports.main = async function (event, context) {
   try {
-    const { docId, start = 0, end = 500 } = event
+    const { bookId, start = 0, end = 500 } = event
     const wxContext = cloud.getWXContext();
     const openid = wxContext.OPENID;
     
     if (!openid) {
       return { code: 400, message: '用户标识不能为空', success: false }
     }
-    if (!docId) {
+    if (!bookId) {
       return { code: 400, message: '书籍ID不能为空', success: false }
     }
     
     // 获取书籍信息
     // 构建查询条件
-    let query = db.collection('books').where({ openid, _id: docId })
+    let query = db.collection('books').where({ openid, _id: bookId })
 
     const doc = await query.get()
 

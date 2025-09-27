@@ -1,6 +1,6 @@
 <!--components/upload/index.wxml-->
 <slot name="button" bind:tap="chooseFile" />
-<van-dialog
+<!-- <van-dialog
  use-slot
  title="导入书籍"
  show="{{ show }}"
@@ -14,5 +14,10 @@
 			<view style="font-size: 12px">{{progress}}%</view>
 		</van-circle>
 	</view>
-</van-dialog>
+</van-dialog> -->
+<van-overlay show="{{ uploadLoading }}">
+		<van-loading type="spinner" size="30px" custom-class="upload-loading">
+			<span>{{loadingText}}...</span>
+		</van-loading>
+	</van-overlay>
 

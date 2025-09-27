@@ -6,6 +6,7 @@
     "van-loading": "@vant/weapp/loading/index",
     "van-button": "@vant/weapp/button/index",
     "van-circle": "@vant/weapp/circle/index",
-    "van-dialog": "@vant/weapp/dialog/index"
+    "van-dialog": "@vant/weapp/dialog/index",
+    "van-overlay": "@vant/weapp/overlay/index"
   }
 }

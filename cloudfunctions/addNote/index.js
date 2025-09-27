@@ -13,7 +13,7 @@ exports.main = async function (noteInfo) {
     const wxContext = cloud.getWXContext();
     const openid = wxContext.OPENID;
     const {
-      docId,
+      bookId,
       content,
       type,
       position,
@@ -25,7 +25,7 @@ exports.main = async function (noteInfo) {
     // 验证必填参数
     if (
       !openid ||
-      !docId ||
+      !bookId ||
       !content ||
       !type ||
       position === undefined ||
@@ -37,7 +37,7 @@ exports.main = async function (noteInfo) {
     // 验证书籍是否存在
     const doc = await db
       .collection("books")
-      .where({ _id: docId, openid })
+      .where({ _id: bookId, openid })
       .get();
 
     if (doc.data.length === 0) {
@@ -47,7 +47,7 @@ exports.main = async function (noteInfo) {
     const result = await db.collection("notes").add({
       data: {
         openid,
-        docId,
+        bookId,
         content,
         type, // highlight/note
         position,
