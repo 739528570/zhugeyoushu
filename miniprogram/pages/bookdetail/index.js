@@ -1,5 +1,6 @@
 // pages/bookdetail/index.js
 import { booksPath } from "../../utils/index";
+import { TextDecoder } from 'text-decoding';
 Page({
   /**
    * 页面的初始数据
@@ -40,8 +41,11 @@ Page({
         const fs = wx.getFileSystemManager();
         console.log(`检测到文件编码: ${book.encoding}`);
         const buffer = await fs.readFileSync(`${booksPath}/${book._id}`);
+        const arr = new Uint8Array(buffer)
         const decoder = new TextDecoder(book.encoding);
-        content = decoder.decode(buffer);
+        content = decoder.decode(arr);
+        console.log(`content: ${content}`);
+        // content = iconv.decode(buffer, book.encoding);
       } else {
         // const res1 = await wx.cloud.callFunction({
         //   name: "books",
