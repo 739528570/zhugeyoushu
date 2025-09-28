@@ -1,12 +1,15 @@
 <!--pages/bookdetail/index.wxml-->
 <!--index.wxml-->
-<van-nav-bar
- left-arrow
- title="{{ title }}"
- placeholder
- bind:click-left="backHome"
-/>
-<view class="book-detail" bind:tap="handleTap">
+<van-transition show="{{ showFooter }}" name="fade-down">
+	<van-nav-bar
+	 fixed
+	 left-arrow
+	 title="{{ title }}"
+	 bind:click-left="backHome"
+	 wx:if="{{ showFooter }}"
+	/>
+</van-transition>
+<view class="book-content {{ mode === 'sunny' ? 'book-detail-sunny' : 'book-detail-moon' }}" bind:tap="handleTap">
 	<van-loading
 	 type="spinner"
 	 size="30px"
@@ -15,7 +18,7 @@
 	 wx:if="{{ loading }}"
 	>加载中...
 	</van-loading>
-	<view wx:if="{{ !loading }}">
+	<view wx:if="{{ !loading }}" style="font-size: {{ fontSize }}px;">
 		{{content}}
 	</view>
 </view>
@@ -23,6 +26,39 @@
  show="{{ showFooter }}"
  overlay="{{false}}"
  position="bottom"
- custom-style="height: 15%;"
-/>
+ custom-style="height: 25%;"
+>
+	<view style="padding: 15px">
+		<view style="display: flex; justify-content: space-between; align-items: center;">
+			<view>
+				<van-button icon="/statics/images/letter2.png" bind:click="fontSizeMinus" />
+			</view>
+			<view style="flex-grow: 1; margin: 0 10px;">
+				<van-slider
+				 use-slot
+				 min="{{ 10 }}"
+				 max="{{ 32 }}"
+				 value="{{ fontSize }}"
+				 inactive-color="#e5e5e5"
+				 active-color="#e5e5e5"
+				 use-button-slot
+				 bind:drag="setFontSize"
+				>
+					<view class="custom-button" slot="button">{{ fontSize }}</view>
+				</van-slider>
+			</view>
+			<view>
+				<van-button icon="/statics/images/letter1.png" bind:click="fontSizePlus" />
+			</view>
+		</view>
+		<view>
+			<!-- <van-grid column-num="3" clickable>
+				<van-grid-item icon="/statics/images/letter2.png" bind:click="fontSizeMinus" />
+        <van-grid-item />
+        <van-grid-item icon="/statics/images/letter1.png" bind:click="fontSizePlus" />
+				<van-grid-item icon="/statics/images/{{ mode }}.png" bind:click="cutMode" />
+			</van-grid> -->
+		</view>
+	</view>
+</van-popup>
 

@@ -1,10 +1,14 @@
 // pages/bookdetail/index.js
-import { booksPath } from "../../utils/index";
+import {
+  booksPath
+} from "../../utils/index";
 Page({
   /**
    * 页面的初始数据
    */
   data: {
+    fontSize: 16,
+    mode: 'sunny',
     loading: true,
     showHeader: false,
     title: "",
@@ -20,7 +24,9 @@ Page({
       let content = "";
       const res = await wx.cloud.callFunction({
         name: "getBooks",
-        data: { bookId: id },
+        data: {
+          bookId: id
+        },
       });
 
       const cacheFileList = getApp().globalData.cacheFileList ?? [];
@@ -57,7 +63,48 @@ Page({
     }
   },
 
-  async getPage() {},
+  fontSizePlus() {
+    let fontSize = this.data.fontSize;
+    if (fontSize >= 32) return;
+    this.setData({
+      fontSize: ++fontSize
+    })
+    wx.setStorage({
+      key: "fontSize",
+      data: fontSize
+    })
+  },
+  fontSizeMinus() {
+    let fontSize = this.data.fontSize;
+    if (fontSize <= 10) return;
+    this.setData({
+      fontSize: --fontSize
+    })
+    wx.setStorage({
+      key: "fontSize",
+      data: fontSize
+    })
+  },
+  setFontSize(event) {
+    const fontSize = event.detail.value;
+    this.setData({
+      fontSize
+    });
+    wx.setStorage({
+      key: "fontSize",
+      data: fontSize
+    })
+  },
+  cutMode() {
+    const mode = this.data.mode === 'sunny' ? 'moon' : 'sunny';
+    this.setData({
+      mode
+    });
+    wx.setStorage({
+      key: "mode",
+      data: mode
+    })
+  },
 
   backHome() {
     wx.navigateBack();
@@ -74,8 +121,26 @@ Page({
    */
   async onLoad(options) {
     console.log(options);
-    if (options.id) {
-      await this.getDetail(options.id);
+    try {
+      if (options.id) {
+        await this.getDetail(options.id);
+      }
+      let fontSize = 16;
+      let mode = 'sunny';
+      const fontSizeLocal = await wx.getStorageSync('fontSize');
+      if (fontSizeLocal) {
+        fontSize = String(fontSizeLocal);
+      }
+      const modeLocal = await wx.getStorageSync('mode');
+      if (modeLocal) {
+        mode = modeLocal;
+      }
+      this.setData({
+        mode,
+        fontSize
+      });
+    } catch (e) {
+      console.error('load', e)
     }
   },
 

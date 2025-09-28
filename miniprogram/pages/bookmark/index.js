@@ -4,36 +4,11 @@ Page({
    * 页面的初始数据
    */
   data: {
-    url: "",
   },
-
   /**
    * 生命周期函数--监听页面加载
    */
   onLoad() {
-    // 调用云函数获取抖音PC版HTML
-    const that = this;
-    wx.cloud
-      .callFunction({
-        name: "proxyWWW",
-        data: {
-          url: "https://www.douyin.com",
-        },
-      })
-      .then((res) => {
-        console.log("html", res);
-
-        if (res.result.success) {
-          const htmlUrl = res.result.htmlUrl;
-          // 将HTML内容保存到云存储，生成临时链接（因为web-view的src需要是URL）
-          that.setData({ url: htmlUrl })
-        } else {
-          wx.showToast({ title: "加载失败", icon: "none" });
-        }
-      })
-      .catch((err) => {
-        console.error("云函数调用失败：", err);
-      });
   },
 
   /**

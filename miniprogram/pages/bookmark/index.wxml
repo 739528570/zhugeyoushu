@@ -1,6 +1,7 @@
 <!--pages/bookmark/index.wxml-->
 <view class="container">
-  <van-nav-bar title="书签" />
-  <web-view src="{{ url }}"></web-view>
-  <footer active="bookmark" />
+	<van-nav-bar title="TEST" placeholder>
+	</van-nav-bar>
+	<footer active="bookmark" />
 </view>
+

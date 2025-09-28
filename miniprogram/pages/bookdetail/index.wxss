@@ -2,7 +2,15 @@
 .list-loading {
   display: flex !important;
 }
-.book-detail {
+.book-content {
+
   line-height: 80rpx;
-  padding: 5%;
+  padding: 160rpx 4% 4%;
+}
+.book-detail-sunny {
+  color: #000 !important;
+}
+.book-detail-moon {
+  background-color: #000 !important;
+  color: #fff  !important;
 }
