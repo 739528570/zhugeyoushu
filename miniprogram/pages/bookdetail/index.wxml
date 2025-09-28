@@ -1,64 +1,55 @@
 <!--pages/bookdetail/index.wxml-->
 <!--index.wxml-->
-<van-transition show="{{ showFooter }}" name="fade-down">
-	<van-nav-bar
-	 fixed
-	 left-arrow
-	 title="{{ title }}"
-	 bind:click-left="backHome"
-	 wx:if="{{ showFooter }}"
-	/>
-</van-transition>
-<view class="book-content {{ mode === 'sunny' ? 'book-detail-sunny' : 'book-detail-moon' }}" bind:tap="handleTap">
-	<van-loading
-	 type="spinner"
-	 size="30px"
-	 vertical
-	 custom-class="list-loading"
-	 wx:if="{{ loading }}"
-	>加载中...
-	</van-loading>
-	<view wx:if="{{ !loading }}" style="font-size: {{ fontSize }}px;">
-		{{content}}
-	</view>
-</view>
-<van-popup
- show="{{ showFooter }}"
- overlay="{{false}}"
- position="bottom"
- custom-style="height: 25%;"
->
-	<view style="padding: 15px">
-		<view style="display: flex; justify-content: space-between; align-items: center;">
-			<view>
-				<van-button icon="/statics/images/letter2.png" bind:click="fontSizeMinus" />
-			</view>
-			<view style="flex-grow: 1; margin: 0 10px;">
-				<van-slider
-				 use-slot
-				 min="{{ 10 }}"
-				 max="{{ 32 }}"
-				 value="{{ fontSize }}"
-				 inactive-color="#e5e5e5"
-				 active-color="#e5e5e5"
-				 use-button-slot
-				 bind:drag="setFontSize"
-				>
-					<view class="custom-button" slot="button">{{ fontSize }}</view>
-				</van-slider>
-			</view>
-			<view>
-				<van-button icon="/statics/images/letter1.png" bind:click="fontSizePlus" />
-			</view>
-		</view>
-		<view>
-			<!-- <van-grid column-num="3" clickable>
-				<van-grid-item icon="/statics/images/letter2.png" bind:click="fontSizeMinus" />
-        <van-grid-item />
-        <van-grid-item icon="/statics/images/letter1.png" bind:click="fontSizePlus" />
-				<van-grid-item icon="/statics/images/{{ mode }}.png" bind:click="cutMode" />
-			</van-grid> -->
-		</view>
-	</view>
+<!-- <van-transition show="{{ showFooter }}" name="fade-down">
+  <van-nav-bar fixed left-arrow title="{{ title }}" bind:click-left="backHome" wx:if="{{ showFooter }}" />
+</van-transition> -->
+<van-popup show="{{ showFooter }}" overlay="{{false}}" position="top" custom-style="height: {{ barHeight }}px;">
+  <van-nav-bar fixed left-arrow title="{{ title }}" bind:click-left="backHome" />
 </van-popup>
 
+<view class="book-content {{ mode === 'sunny' ? 'book-detail-sunny' : 'book-detail-light' }}" bind:tap="handleTap">
+  <van-loading type="spinner" size="30px" vertical custom-class="list-loading" wx:if="{{ loading }}">加载中...
+  </van-loading>
+  <view wx:if="{{ !loading }}" style="font-size: {{ fontSize }}px; line-height: {{ lineHeight }}px;">
+    {{content}}
+  </view>
+</view>
+<van-popup show="{{ showFooter }}" overlay="{{false}}" position="bottom" custom-style="height: 220px;">
+  <view style="padding: 15px">
+    <view style="display: flex; justify-content: space-between; align-items: center;">
+      <van-button icon="/statics/images/letter2.png" disabled="{{ fontSize <= fontSizeMin }}" bind:click="fontSizeMinus"
+        custom-style="border: none" />
+      <view style="flex-grow: 1; margin: 0 15px;">
+        <van-slider use-slot min="{{ fontSizeMin }}" max="{{ fontSizeMax }}" value="{{ fontSize }}"
+          inactive-color="#e5e5e5" active-color="#e5e5e5" use-button-slot bind:drag="setFontSize">
+          <van-button slot="button" size="mini" plain round hairline>{{ fontSize }}</van-button>
+        </van-slider>
+      </view>
+      <van-button icon="/statics/images/letter1.png" disabled="{{ fontSize >= fontSizeMax }}" bind:click="fontSizePlus"
+        custom-style="border: none" />
+    </view>
+    <view style="display: flex; margin-top: 15px;">
+      <view style="display: flex;">
+        <van-icon name="/statics/images/line.png" style="padding: 0 15px;" />
+        <van-button round block icon="minus" size="mini" custom-style="height: 44px"
+          disabled="{{ lineHeight <= lineHeightMin }}" bind:click="lineHeightMinus" />
+        <view style="padding: 0 15px; line-height: 44px;">{{lineHeight}}</view>
+        <van-button round block icon="plus" size="mini" custom-style="height: 44px"
+          disabled="{{ lineHeight >= lineHeightMax }}" bind:click="lineHeightPlus" />
+      </view>
+      <view style="display: flex; justify-content: space-between; align-items: center; margin-left: 20px; width: 200px;">
+        <van-button round color="{{ mode === 'light' ? 'black' : 'white' }}"
+          icon="/statics/images/light{{ mode === 'light' ? '-white' : '' }}.png"
+          custom-style="width: 80px;border-color: {{ mode === 'light' ? 'white' : 'black' }}"
+          bind:click="cutModeLight" />
+        <van-button round color="{{ mode === 'sunny' ? 'black' : 'white' }}"
+          icon="/statics/images/sunny{{ mode === 'sunny' ? '-white' : '' }}.png"
+          custom-style="width: 80px;border-color: {{ mode === 'sunny' ? 'white' : 'black' }}"
+          bind:click="cutModeSunny" />
+      </view>
+    </view>
+    <view style="display: flex; margin-top: 15px; justify-content: center;">
+      <van-button type="default" custom-style="width: 200px;">目录</van-button>
+    </view>
+  </view>
+</van-popup>

@@ -1,14 +1,17 @@
 // pages/bookdetail/index.js
-import {
-  booksPath
-} from "../../utils/index";
+import { booksPath } from "../../utils/index";
 Page({
   /**
    * 页面的初始数据
    */
   data: {
+    lineHeight: 36,
+    lineHeightMax: 48,
+    lineHeightMin: 28,
+    fontSizeMax: 32,
+    fontSizeMin: 10,
     fontSize: 16,
-    mode: 'sunny',
+    mode: "sunny",
     loading: true,
     showHeader: false,
     title: "",
@@ -25,7 +28,7 @@ Page({
       const res = await wx.cloud.callFunction({
         name: "getBooks",
         data: {
-          bookId: id
+          bookId: id,
         },
       });
 
@@ -65,45 +68,77 @@ Page({
 
   fontSizePlus() {
     let fontSize = this.data.fontSize;
-    if (fontSize >= 32) return;
+    if (fontSize >= this.data.fontSizeMax) return;
     this.setData({
-      fontSize: ++fontSize
-    })
+      fontSize: ++fontSize,
+    });
     wx.setStorage({
       key: "fontSize",
-      data: fontSize
-    })
+      data: fontSize,
+    });
   },
   fontSizeMinus() {
     let fontSize = this.data.fontSize;
-    if (fontSize <= 10) return;
+    if (fontSize <= this.data.fontSizeMin) return;
     this.setData({
-      fontSize: --fontSize
-    })
+      fontSize: --fontSize,
+    });
     wx.setStorage({
       key: "fontSize",
-      data: fontSize
-    })
+      data: fontSize,
+    });
   },
   setFontSize(event) {
     const fontSize = event.detail.value;
     this.setData({
-      fontSize
+      fontSize,
     });
     wx.setStorage({
       key: "fontSize",
-      data: fontSize
-    })
+      data: fontSize,
+    });
   },
-  cutMode() {
-    const mode = this.data.mode === 'sunny' ? 'moon' : 'sunny';
+  cutModeLight() {
+    const mode = "light";
     this.setData({
-      mode
+      mode,
     });
     wx.setStorage({
       key: "mode",
-      data: mode
-    })
+      data: mode,
+    });
+  },
+  cutModeSunny() {
+    const mode = "sunny";
+    this.setData({
+      mode,
+    });
+    wx.setStorage({
+      key: "mode",
+      data: mode,
+    });
+  },
+  lineHeightPlus() {
+    let lineHeight = this.data.lineHeight;
+    if (lineHeight >= this.data.lineHeightMax) return;
+    this.setData({
+      lineHeight: ++lineHeight,
+    });
+    wx.setStorage({
+      key: "lineHeight",
+      data: lineHeight,
+    });
+  },
+  lineHeightMinus() {
+    let lineHeight = this.data.lineHeight;
+    if (lineHeight <= this.data.lineHeightMin) return;
+    this.setData({
+      lineHeight: --lineHeight,
+    });
+    wx.setStorage({
+      key: "lineHeight",
+      data: lineHeight,
+    });
   },
 
   backHome() {
@@ -126,21 +161,22 @@ Page({
         await this.getDetail(options.id);
       }
       let fontSize = 16;
-      let mode = 'sunny';
-      const fontSizeLocal = await wx.getStorageSync('fontSize');
+      let mode = "sunny";
+      const fontSizeLocal = await wx.getStorageSync("fontSize");
       if (fontSizeLocal) {
         fontSize = String(fontSizeLocal);
       }
-      const modeLocal = await wx.getStorageSync('mode');
+      const modeLocal = await wx.getStorageSync("mode");
       if (modeLocal) {
         mode = modeLocal;
       }
       this.setData({
         mode,
-        fontSize
+        fontSize,
+        barHeight: wx.getWindowInfo().statusBarHeight + 46,
       });
     } catch (e) {
-      console.error('load', e)
+      console.error("load", e);
     }
   },
 

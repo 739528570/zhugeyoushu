@@ -10,7 +10,7 @@
 .book-detail-sunny {
   color: #000 !important;
 }
-.book-detail-moon {
+.book-detail-light {
   background-color: #000 !important;
   color: #fff  !important;
 }
