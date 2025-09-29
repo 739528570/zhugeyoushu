@@ -1,5 +1,4 @@
 import { booksPath } from "./utils/index";
-
 // app.js
 App({
   globalData: {

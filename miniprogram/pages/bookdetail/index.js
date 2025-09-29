@@ -1,6 +1,5 @@
 // pages/bookdetail/index.js
 import { booksPath } from "../../utils/index";
-import { TextDecoder } from 'text-decoding';
 Page({
   /**
    * 页面的初始数据
@@ -40,21 +39,18 @@ Page({
       if (cacheFileList.length && cacheFileList.includes(book._id)) {
         const fs = wx.getFileSystemManager();
         console.log(`检测到文件编码: ${book.encoding}`);
+        let decoder;
+        if (typeof TextDecoder !== "undefined") {
+          // 优先使用环境自带的 TextDecoder
+          decoder = new TextDecoder(book.encoding);
+        } else {
+          // 降级方案：使用 text-decoding 库
+          const { TextDecoder } = require("text-decoding");
+          decoder = new TextDecoder(book.encoding);
+        }
         const buffer = await fs.readFileSync(`${booksPath}/${book._id}`);
-        const arr = new Uint8Array(buffer)
-        const decoder = new TextDecoder(book.encoding);
+        const arr = new Uint8Array(buffer);
         content = decoder.decode(arr);
-        console.log(`content: ${content}`);
-        // content = iconv.decode(buffer, book.encoding);
-      } else {
-        // const res1 = await wx.cloud.callFunction({
-        //   name: "books",
-        //   data: {
-        //     cmd: "parse",
-        //     bookId: id,
-        //   },
-        // });
-        // content = res1.result.data.content;
       }
 
       this.setData({
