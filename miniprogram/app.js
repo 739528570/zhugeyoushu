@@ -105,18 +105,19 @@ App({
   async getStorageChapter(bookId) {
     try {
       const chapters = (await wx.getStorageSync("chapters")) || {};
-      return chapters[bookId] ? chapters[bookId] : {};
+      return chapters[bookId] ? chapters[bookId]?.chapters : [];
     } catch (error) {
-      console.log("addStorageChapter", error);
+      console.error("getStorageChapter", error);
+      return [];
     }
   },
   async addStorageChapter(bookId, chapter) {
     try {
       const chapters = (await wx.getStorageSync("chapters")) || {};
-      chapters[bookId] = chapter;
+      chapters[bookId] = chapter?.[0]?.chapters ?? [];
       await wx.setStorageSync("chapters", chapters);
     } catch (error) {
-      console.log("addStorageChapter", error);
+      console.error("addStorageChapter", error);
     }
   },
   async deleteStorageChapter(bookId) {

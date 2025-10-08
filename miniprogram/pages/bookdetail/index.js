@@ -17,6 +17,8 @@ Page({
     title: "",
     content: "",
     showFooter: false,
+    showChapters: false,
+    chapters: []
   },
 
   async getDetail(id) {
@@ -64,6 +66,30 @@ Page({
         loading: false,
       });
     }
+  },
+
+  async getChapters(id) {
+    try {
+      const res = (await wx.getStorageSync("chapters")) || {};
+      const chapters = res?.[id] ?? [];
+      console.log(id, chapters)
+      this.setData({
+        chapters
+      });
+    } catch (error) {
+      console.error(error)
+    }
+  },
+
+  switchFooter() {
+    this.setData({
+      showFooter: !this.data.showFooter,
+    });
+  },
+  switchChapters() {
+    this.setData({
+      showChapters: !this.data.showChapters,
+    });
   },
 
   fontSizePlus() {
@@ -145,12 +171,6 @@ Page({
     wx.navigateBack();
   },
 
-  handleTap() {
-    this.setData({
-      showFooter: !this.data.showFooter,
-    });
-  },
-
   /**
    * 生命周期函数--监听页面加载
    */
@@ -159,6 +179,7 @@ Page({
     try {
       if (options.id) {
         await this.getDetail(options.id);
+        await this.getChapters(options.id);
       }
       let fontSize = 16;
       let mode = "sunny";
