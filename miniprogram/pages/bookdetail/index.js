@@ -5,6 +5,15 @@ Page({
    * 页面的初始数据
    */
   data: {
+    id: "",
+    title: "",
+    loading: true,
+    content: "",
+    currentPosition: 0, // 当前阅读位置（字符索引）
+    chunkSize: 10000, // 每次加载的字符数（约20KB，可根据实际调整）
+    totalLength: 0, // 小说总长度
+    hasMore: true, // 是否还有更多内容
+    encoding: "utf-8",
     lineHeight: 36,
     lineHeightMax: 48,
     lineHeightMin: 28,
@@ -12,53 +21,27 @@ Page({
     fontSizeMin: 10,
     fontSize: 16,
     mode: "sunny",
-    loading: true,
     showHeader: false,
-    title: "",
-    content: "",
     showFooter: false,
     showChapters: false,
-    chapters: []
+    chapters: [],
   },
 
-  async getDetail(id) {
+  async getDetail() {
     try {
-      this.setData({
-        loading: true,
-      });
-      let content = "";
       const res = await wx.cloud.callFunction({
         name: "getBooks",
         data: {
-          bookId: id,
+          bookId: this.data.id,
         },
       });
 
-      const cacheFileList = getApp().globalData.cacheFileList ?? [];
       let book = res.result.data?.books?.[0] || {};
-      console.log("getDetail", res, cacheFileList);
-
-      if (cacheFileList.length && cacheFileList.includes(book._id)) {
-        const fs = wx.getFileSystemManager();
-        console.log(`检测到文件编码: ${book.encoding}`);
-        let decoder;
-        if (typeof TextDecoder !== "undefined") {
-          // 优先使用环境自带的 TextDecoder
-          decoder = new TextDecoder(book.encoding);
-        } else {
-          // 降级方案：使用 text-decoding 库
-          const { TextDecoder } = require("text-decoding");
-          decoder = new TextDecoder(book.encoding);
-        }
-        const buffer = await fs.readFileSync(`${booksPath}/${book._id}`);
-        const arr = new Uint8Array(buffer);
-        content = decoder.decode(arr);
-      }
-
+      console.log("getDetail", book);
       this.setData({
-        content,
         title: book.title,
-        loading: false,
+        encoding: book.encoding,
+        totalLength: book.size,
       });
     } catch (error) {
       console.log("读取文件失败", error);
@@ -68,16 +51,97 @@ Page({
     }
   },
 
-  async getChapters(id) {
+  // 读取指定范围的内容片段
+  async readContentChunk(start, length) {
+    try {
+      console.log("readContentChunk", this.data);
+
+      let fullContent = "";
+      const encoding = this.data.encoding;
+      const fs = wx.getFileSystemManager();
+      console.log(`检测到文件编码: ${encoding}`);
+      let decoder;
+      if (typeof TextDecoder !== "undefined") {
+        decoder = new TextDecoder(encoding);
+      } else {
+        const { TextDecoder } = require("text-decoding");
+        decoder = new TextDecoder(encoding);
+      }
+      const buffer = await fs.readFileSync(`${booksPath}/${this.data.id}`);
+      const arr = new Uint8Array(buffer);
+      fullContent = decoder.decode(arr);
+
+      // 截取指定范围的片段（考虑边界情况）
+      const end = Math.min(start + length, fullContent.length);
+      const chunk = fullContent.substring(start, end);
+
+      this.setData({ hasMore: end < fullContent.length });
+
+      return chunk;
+    } catch (err) {
+      console.error("读取内容片段失败:", err);
+      return "";
+    }
+  },
+
+  // 加载更多内容（滚动到底部时触发）
+  async loadMoreContent() {
+    if (this.data.loading || !this.data.hasMore) return;
+
+    this.setData({ loading: true });
+    try {
+      const nextChunk = await this.readContentChunk(
+        this.data.currentPosition,
+        this.data.chunkSize
+      );
+
+      // 追加内容（而非替换）
+      this.setData({
+        bookContent: this.data.bookContent + nextChunk,
+        currentPosition: this.data.currentPosition + this.data.chunkSize,
+        loading: false,
+      });
+    } catch (err) {
+      console.error("加载更多内容失败:", err);
+      this.setData({ loading: false });
+    }
+  },
+
+  // 加载初始内容（首屏）
+  async loadInitialContent() {
+    this.setData({ loading: true });
+    try {
+      const content = await this.readContentChunk(0, this.data.chunkSize);
+      this.setData({
+        content,
+        currentPosition: this.data.chunkSize,
+        loading: false,
+      });
+    } catch (err) {
+      console.error("加载初始内容失败:", err);
+      this.setData({ loading: false });
+    }
+  },
+
+  // 监听滚动事件，接近底部时加载更多
+  onScroll(e) {
+    console.log("onScroll", this.data.hasMore);
+    // const { scrollTop, scrollHeight, clientHeight } = e.detail;
+    // // 当距离底部小于200px时加载更多
+    // if (scrollHeight - scrollTop - clientHeight < 200) {
+    //   this.loadMoreContent();
+    // }
+  },
+
+  async getChapters() {
     try {
       const res = (await wx.getStorageSync("chapters")) || {};
-      const chapters = res?.[id] ?? [];
-      console.log(id, chapters)
+      const chapters = res?.[this.data.id] ?? [];
       this.setData({
-        chapters
+        chapters,
       });
     } catch (error) {
-      console.error(error)
+      console.error(error);
     }
   },
 
@@ -178,8 +242,10 @@ Page({
     console.log(options);
     try {
       if (options.id) {
-        await this.getDetail(options.id);
-        await this.getChapters(options.id);
+        await this.setData({ id: options.id });
+        await this.getDetail();
+        await this.getChapters();
+        await this.loadInitialContent();
       }
       let fontSize = 16;
       let mode = "sunny";

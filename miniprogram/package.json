@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@vant/weapp": "^1.11.7",
+    "chardet": "^2.1.0",
     "text-decoding": "^1.0.0",
     "wx-server-sdk": "^3.0.1"
   },
