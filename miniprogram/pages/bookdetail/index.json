@@ -1,5 +1,6 @@
 {
   "usingComponents": {
+    "content-chunk": "/components/content-chunk/index",
     "van-loading": "@vant/weapp/loading/index",
     "van-popup": "@vant/weapp/popup/index",
     "van-nav-bar": "@vant/weapp/nav-bar/index",

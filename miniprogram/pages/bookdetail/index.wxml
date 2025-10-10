@@ -7,12 +7,15 @@
   <van-nav-bar fixed left-arrow title="{{ title }}" bind:click-left="backHome" />
 </van-popup>
 
-<scroll-view class="book-content {{ mode === 'sunny' ? 'book-detail-sunny' : 'book-detail-light' }}" scroll-y="true"
-  bindscroll="onScroll" bind:tap="switchFooter" style="height: 300rpx;">
-  <view style="font-size: {{ fontSize }}px; line-height: {{ lineHeight }}px;">
-    {{content}}
+<scroll-view class="{{ mode === 'sunny' ? 'book-detail-sunny' : 'book-detail-light' }}" scroll-y="true"
+  bind:scroll="onScroll" bind:tap="switchFooter" style="height: {{ windowHeight ? windowHeight + 'px' : '100%' }};">
+  <view class="book-content" style="font-size: {{ fontSize }}px; line-height: {{ lineHeight }}px;">
+    <!-- {{content}} -->
+    <block wx:for="{{contentChunks}}" wx:key="id">
+      <content-chunk content="{{item.content}}"></content-chunk>
+    </block>
   </view>
-  <van-loading type="spinner" size="30px" vertical custom-class="list-loading" wx:if="{{ loading }}">加载中...
+  <van-loading type="spinner" size="30px" vertical custom-class="list-loading" wx:if="{{ isLoading }}">加载中...
   </van-loading>
 </scroll-view>
 <van-popup show="{{ showFooter }}" overlay="{{false}}" position="bottom" custom-style="height: 220px;">

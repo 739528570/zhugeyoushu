@@ -1,0 +1,2 @@
+<!--components/content-chunk/index.wxml-->
+<text>{{ content }}</text>

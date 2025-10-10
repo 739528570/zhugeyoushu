@@ -4,9 +4,9 @@
 }
 .book-content {
   line-height: 80rpx;
-  width: 95%;
-  margin: 0 auto;
-  padding-top: 160rpx;
+  width: 95%; 
+  margin: 0 auto; 
+  padding-top: 160rpx; 
 }
 .book-detail-sunny {
   color: #000 !important;
