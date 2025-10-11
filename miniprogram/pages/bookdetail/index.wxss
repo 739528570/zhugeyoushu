@@ -8,10 +8,3 @@
   margin: 0 auto; 
   padding-top: 160rpx; 
 }
-.book-detail-sunny {
-  color: #000 !important;
-}
-.book-detail-light {
-  background-color: #000 !important;
-  color: #fff  !important;
-}

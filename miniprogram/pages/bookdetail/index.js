@@ -1,5 +1,7 @@
 // pages/bookdetail/index.js
-import { booksPath } from "../../utils/index";
+import {
+  booksPath
+} from "../../utils/index";
 Page({
   data: {
     // 内容相关
@@ -25,17 +27,18 @@ Page({
     title: "",
     chapters: [],
     encoding: "utf-8",
-    lineHeightMax: 48,
-    lineHeightMin: 28,
-    mode: "sunny",
     showHeader: false,
     showFooter: false,
     showChapters: false,
 
+    // 缓存
+    preloadedChunk: null, // 预加载的分片内容
+    bookId: '', // 当前书籍ID
     windowHeight: 0,
-  },
-  bookData: {
-    bookId: "",
+    lineHeightMax: 48,
+    lineHeightMin: 28,
+    fontSizeMax: 32,
+    fontSizeMin: 10,
   },
 
   /**
@@ -44,32 +47,34 @@ Page({
   async onLoad(options) {
     try {
       if (!options.id) {
-        wx.showToast({ title: "参数错误", icon: "none" });
+        wx.showToast({
+          title: "参数错误",
+          icon: "none"
+        });
         wx.navigateBack();
         return;
       }
       await this.setData({
         windowHeight: wx.getWindowInfo().windowHeight,
       });
-      this.bookData.bookId = options.id;
+      this.data.bookId = options.id;
       // 初始化阅读器
       this.initReader();
 
       await this.getDetail();
       await this.getChapters();
-      await this.loadInitialContent();
       let fontSize = 16;
-      let mode = "sunny";
+      let theme = "light";
       const fontSizeLocal = await wx.getStorageSync("fontSize");
       if (fontSizeLocal) {
         fontSize = String(fontSizeLocal);
       }
-      const modeLocal = await wx.getStorageSync("mode");
-      if (modeLocal) {
-        mode = modeLocal;
+      const themeLocal = await wx.getStorageSync("theme");
+      if (themeLocal) {
+        theme = themeLocal;
       }
       this.setData({
-        mode,
+        theme,
         fontSize,
         barHeight: wx.getWindowInfo().statusBarHeight + 46,
       });
@@ -94,7 +99,9 @@ Page({
       await this.loadInitialChunks();
     } catch (err) {
       console.error("初始化阅读器失败:", err);
-      this.setData({ error: "加载书籍失败: " + (err.message || "未知错误") });
+      this.setData({
+        error: "加载书籍失败: " + (err.message || "未知错误")
+      });
     }
   },
 
@@ -103,7 +110,7 @@ Page({
     return new Promise((resolve, reject) => {
       const fs = wx.getFileSystemManager();
       fs.access({
-        path: this.data.filePath,
+        path: `${booksPath}/${this.data.bookId}`,
         success: () => resolve(),
         fail: () => reject(new Error("文件不存在")),
       });
@@ -115,7 +122,7 @@ Page({
       const res = await wx.cloud.callFunction({
         name: "getBooks",
         data: {
-          bookId: this.bookData.bookId,
+          bookId: this.data.bookId,
         },
       });
 
@@ -137,7 +144,9 @@ Page({
   calculateTotalChunks() {
     const chunkSize = this.getChunkSize(); // 获取分片大小
     const totalChunks = Math.ceil(this.data.totalLength / chunkSize);
-    this.setData({ totalChunks });
+    this.setData({
+      totalChunks
+    });
   },
 
   // 获取分片大小（根据字体大小动态调整）
@@ -154,7 +163,9 @@ Page({
 
   // 加载初始分片
   async loadInitialChunks() {
-    this.setData({ isLoading: true });
+    this.setData({
+      isLoading: true
+    });
 
     try {
       // 加载第0片
@@ -174,7 +185,9 @@ Page({
       // 开始预加载第2片
       this.preloadNextChunk(2);
     } catch (err) {
-      this.setData({ isLoading: false });
+      this.setData({
+        isLoading: false
+      });
       throw err;
     }
   },
@@ -213,11 +226,13 @@ Page({
       if (typeof TextDecoder !== "undefined") {
         decoder = new TextDecoder(encoding);
       } else {
-        const { TextDecoder } = require("text-decoding");
+        const {
+          TextDecoder
+        } = require("text-decoding");
         decoder = new TextDecoder(encoding);
       }
       const buffer = await fs.readFileSync(
-        `${booksPath}/${this.bookData.bookId}`
+        `${booksPath}/${this.data.bookId}`
       );
       const arr = new Uint8Array(buffer);
       fullContent = decoder.decode(arr);
@@ -239,15 +254,21 @@ Page({
       return;
     }
 
-    this.setData({ isPreloading: true });
+    this.setData({
+      isPreloading: true
+    });
 
     try {
       const nextChunk = await this.loadChunk(nextIndex);
-      this.setData({ preloadedChunk: nextChunk });
+      this.setData({
+        preloadedChunk: nextChunk
+      });
     } catch (err) {
       console.error(`预加载分片${nextIndex}失败:`, err);
     } finally {
-      this.setData({ isPreloading: false });
+      this.setData({
+        isPreloading: false
+      });
     }
   },
 
@@ -258,7 +279,9 @@ Page({
       return;
     }
 
-    this.setData({ isLoading: true });
+    this.setData({
+      isLoading: true
+    });
 
     try {
       const nextIndex = this.data.currentChunkIndex + 1;
@@ -270,7 +293,9 @@ Page({
         this.data.preloadedChunk.index === nextIndex
       ) {
         nextChunk = this.data.preloadedChunk;
-        this.setData({ preloadedChunk: null });
+        this.setData({
+          preloadedChunk: null
+        });
       } else {
         // 否则直接加载
         nextChunk = await this.loadChunk(nextIndex);
@@ -319,7 +344,9 @@ Page({
 
     if (this.data.isLoading || !this.data.hasMore) return;
 
-    this.setData({ isLoading: true });
+    this.setData({
+      isLoading: true
+    });
     try {
       const nextChunk = await this.readContentChunk(
         this.data.currentPosition,
@@ -334,13 +361,18 @@ Page({
       });
     } catch (err) {
       console.error("加载更多内容失败:", err);
-      this.setData({ isLoading: false });
+      this.setData({
+        isLoading: false
+      });
     }
   },
 
   // 滚动事件处理
   onScroll(e) {
-    const { scrollTop, scrollHeight } = e.detail;
+    const {
+      scrollTop,
+      scrollHeight
+    } = e.detail;
     // this.setData({ scrollTop });
 
     // 计算滚动进度
@@ -355,14 +387,20 @@ Page({
 
   // 重新加载
   retryLoad() {
-    this.setData({ error: "" });
+    this.setData({
+      error: ""
+    });
     this.initReader();
   },
 
   // 调整字体大小
   adjustFontSize(e) {
-    const { type } = e.currentTarget.dataset;
-    let { fontSize } = this.data;
+    const {
+      type
+    } = e.currentTarget.dataset;
+    let {
+      fontSize
+    } = this.data;
 
     if (type === "increase" && fontSize < this.data.fontSizeMax) {
       fontSize += 2;
@@ -374,7 +412,9 @@ Page({
       data: fontSize,
     });
     // 字体大小改变时，重新计算分片大小并刷新当前内容
-    this.setData({ fontSize }, () => {
+    this.setData({
+      fontSize
+    }, () => {
       this.refreshCurrentContent();
     });
   },
@@ -382,7 +422,9 @@ Page({
   // 切换主题
   toggleTheme() {
     const theme = this.data.theme === "light" ? "dark" : "light";
-    this.setData({ theme });
+    this.setData({
+      theme
+    });
     wx.setStorage({
       key: "theme",
       data: theme,
@@ -393,9 +435,37 @@ Page({
     });
   },
 
+  // 调整字体大小
+  adjustLineHeight(e) {
+    const {
+      type
+    } = e.currentTarget.dataset;
+    let {
+      lineHeight
+    } = this.data;
+
+    if (type === "increase" && lineHeight < this.data.lineHeightMax) {
+      lineHeight += 2;
+    } else if (type === "decrease" && lineHeight > this.data.lineHeightMin) {
+      lineHeight -= 2;
+    }
+    wx.setStorage({
+      key: "lineHeight",
+      data: lineHeight,
+    });
+    // 字体大小改变时，重新计算分片大小并刷新当前内容
+    this.setData({
+      lineHeight
+    }, () => {
+      this.refreshCurrentContent();
+    });
+  },
+
   // 刷新当前内容（字体大小改变时）
   async refreshCurrentContent() {
-    this.setData({ isLoading: true });
+    this.setData({
+      isLoading: true
+    });
 
     try {
       // 重新计算总分片数
@@ -403,9 +473,9 @@ Page({
 
       // 重新加载当前和下一个分片
       const currentChunk = await this.loadChunk(this.data.currentChunkIndex);
-      const nextChunk = this.data.hasMore
-        ? await this.loadChunk(this.data.currentChunkIndex + 1)
-        : null;
+      const nextChunk = this.data.hasMore ?
+        await this.loadChunk(this.data.currentChunkIndex + 1) :
+        null;
 
       const contentChunks = [currentChunk];
       if (nextChunk) contentChunks.push(nextChunk);
@@ -416,7 +486,9 @@ Page({
       });
     } catch (err) {
       console.error("刷新内容失败:", err);
-      this.setData({ isLoading: false });
+      this.setData({
+        isLoading: false
+      });
     }
   },
 
@@ -427,7 +499,12 @@ Page({
 
   // 保存阅读进度
   saveReadingProgress() {
-    const { bookId, currentChunkIndex, scrollTop, totalLength } = this.data;
+    const {
+      bookId,
+      currentChunkIndex,
+      scrollTop,
+      totalLength
+    } = this.data;
     const progress = Math.floor(
       ((currentChunkIndex * this.getChunkSize()) / totalLength) * 100
     );
@@ -440,26 +517,10 @@ Page({
     });
   },
 
-  // 加载初始内容（首屏）
-  async loadInitialContent() {
-    this.setData({ isLoading: true });
-    try {
-      const content = await this.readContentChunk(0, this.data.chunkSize);
-      this.setData({
-        content,
-        currentPosition: this.data.chunkSize,
-        isLoading: false,
-      });
-    } catch (err) {
-      console.error("加载初始内容失败:", err);
-      this.setData({ isLoading: false });
-    }
-  },
-
   async getChapters() {
     try {
       const res = (await wx.getStorageSync("chapters")) || {};
-      const chapters = res?.[this.bookData.bookId] ?? [];
+      const chapters = res?.[this.data.bookId] ?? [];
       this.setData({
         chapters,
       });
@@ -479,28 +540,6 @@ Page({
     });
   },
 
-  fontSizePlus() {
-    let fontSize = this.data.fontSize;
-    if (fontSize >= this.data.fontSizeMax) return;
-    this.setData({
-      fontSize: ++fontSize,
-    });
-    wx.setStorage({
-      key: "fontSize",
-      data: fontSize,
-    });
-  },
-  fontSizeMinus() {
-    let fontSize = this.data.fontSize;
-    if (fontSize <= this.data.fontSizeMin) return;
-    this.setData({
-      fontSize: --fontSize,
-    });
-    wx.setStorage({
-      key: "fontSize",
-      data: fontSize,
-    });
-  },
   setFontSize(event) {
     const fontSize = event.detail.value;
     this.setData({
@@ -509,48 +548,6 @@ Page({
     wx.setStorage({
       key: "fontSize",
       data: fontSize,
-    });
-  },
-  cutModeLight() {
-    const mode = "light";
-    this.setData({
-      mode,
-    });
-    wx.setStorage({
-      key: "mode",
-      data: mode,
-    });
-  },
-  cutModeSunny() {
-    const mode = "sunny";
-    this.setData({
-      mode,
-    });
-    wx.setStorage({
-      key: "mode",
-      data: mode,
-    });
-  },
-  lineHeightPlus() {
-    let lineHeight = this.data.lineHeight;
-    if (lineHeight >= this.data.lineHeightMax) return;
-    this.setData({
-      lineHeight: ++lineHeight,
-    });
-    wx.setStorage({
-      key: "lineHeight",
-      data: lineHeight,
-    });
-  },
-  lineHeightMinus() {
-    let lineHeight = this.data.lineHeight;
-    if (lineHeight <= this.data.lineHeightMin) return;
-    this.setData({
-      lineHeight: --lineHeight,
-    });
-    wx.setStorage({
-      key: "lineHeight",
-      data: lineHeight,
     });
   },
 
