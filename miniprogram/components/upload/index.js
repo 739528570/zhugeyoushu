@@ -109,8 +109,19 @@ Component({
       const cloudPath = `books/${openid}/${Date.now()}-${fileName}`;
       const arrayBuffer = await fs.readFileSync(path);
       const uint8Array = new Uint8Array(arrayBuffer);
-      const encoding = chardet.detect(uint8Array)?.toLocaleLowerCase?.() || "utf8";
+      const encoding =
+        chardet.detect(uint8Array)?.toLocaleLowerCase?.() || "utf8";
       console.log("encoding", encoding);
+
+      let fullContent = "";
+      let decoder;
+      if (typeof TextDecoder !== "undefined") {
+        decoder = new TextDecoder(encoding);
+      } else {
+        const { TextDecoder } = require("text-decoding");
+        decoder = new TextDecoder(encoding);
+      }
+      fullContent = decoder.decode(uint8Array);
 
       // 创建上传任务
       const uploadTask = wx.cloud.uploadFile({
@@ -127,7 +138,8 @@ Component({
                 fileName: fileName,
                 fileType: fileExt.toUpperCase(),
                 fileSize: size,
-                encoding
+                totalLength: fullContent.length,
+                encoding,
               },
             });
             const bookId = bookResult.result._id;
@@ -156,6 +168,7 @@ Component({
             });
             that.triggerEvent("onOk", {}, {});
           } catch (error) {
+            that.triggerEvent("onOk", {}, {});
             console.error(error);
             that.setData({
               show: false,
@@ -171,6 +184,7 @@ Component({
           }
         },
         fail: (err) => {
+          that.triggerEvent("onOk", {}, {});
           console.error("wx.cloud.uploadFile fail", err);
           that.setData({
             show: false,

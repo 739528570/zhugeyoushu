@@ -548,7 +548,7 @@ exports.main = async (event, context) => {
     return {
       code: 500,
       message: "章节解析失败",
-      error: err.message,
+      error: err,
       success: false,
     };
   }

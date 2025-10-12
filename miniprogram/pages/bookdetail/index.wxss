@@ -3,8 +3,9 @@
   display: flex !important;
 }
 .book-content {
-  line-height: 80rpx;
   width: 95%; 
   margin: 0 auto; 
+}
+.book-content:first-child {
   padding-top: 160rpx; 
 }

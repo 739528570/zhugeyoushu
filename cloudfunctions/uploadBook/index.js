@@ -9,7 +9,7 @@ exports.main = async function (event, context) {
     const wxContext = cloud.getWXContext();
     const openid = wxContext.OPENID;
     console.log('upload', event)
-    const { fileName, fileType, fileSize, fileUrl, coverUrl = "", encoding } = event;
+    const { fileName, fileType, fileSize, fileUrl, coverUrl = "", encoding, totalLength } = event;
     // 验证必填参数
     if (!openid || !fileName || !fileType || !fileSize || !fileUrl) {
       return { code: 400, message: "缺少必要的书籍信息", success: false };
@@ -22,6 +22,7 @@ exports.main = async function (event, context) {
         type: fileType,
         size: fileSize,
         fileUrl: fileUrl,
+        totalLength,
         encoding,
         coverUrl,
         lastReadPos: 0, // 初始阅读位置
@@ -46,6 +47,7 @@ exports.main = async function (event, context) {
       code: 500,
       message: "上传失败",
       success: false,
+      error: err
     };
   }
 };
