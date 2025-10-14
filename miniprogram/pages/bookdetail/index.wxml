@@ -1,48 +1,114 @@
 <!--pages/bookdetail/index.wxml-->
-<van-popup show="{{ showFooter }}" overlay="{{false}}" position="top" custom-style="height: {{ barHeight }}px;">
-  <van-nav-bar fixed left-arrow title="{{ title }}" bind:click-left="backHome" />
+<van-popup
+ show="{{ showFooter }}"
+ overlay="{{false}}"
+ position="top"
+ custom-style="height: {{ barHeight }}px;"
+>
+	<van-nav-bar
+	 fixed
+	 left-arrow
+	 title="{{ title }}"
+	 bind:click-left="backHome"
+	/>
 </van-popup>
 
-<scroll-view scroll-y="true" enable-passive show-scrollbar="{{ false }}" scroll-top="{{ scrollTop }}"
-  bind:scroll="onScroll" bind:tap="switchFooter"
-  style="background-color: {{ theme === 'light' ? '#333' : '#fff' }}; color: {{ theme === 'light' ? '#fff' : '#000' }}; height: {{ windowHeight ? windowHeight + 'px' : '100%' }};">
-  <block wx:for="{{contentChunks}}" wx:key="id">
-    <view class="book-content" style="font-size: {{ fontSize }}px; line-height: {{ lineHeight }}px;">
-      {{item.content}}
-    </view>
-  </block>
-  <!-- <van-loading type="spinner" size="30px" vertical custom-class="list-loading" wx:if="{{ isLoading }}">加载中...
+<scroll-view
+ scroll-y="true"
+ enable-passive
+ show-scrollbar="{{ false }}"
+ scroll-top="{{ scrollTop }}"
+ bind:scroll="onScroll"
+ bind:tap="switchFooter"
+ style="background-color: {{ theme === 'light' ? '#333' : '#fff' }}; color: {{ theme === 'light' ? '#fff' : '#000' }}; height: {{ windowHeight ? windowHeight + 'px' : '100%' }};"
+>
+	<block wx:for="{{contentChunks}}" wx:key="id">
+		<view class="book-content" style="font-size: {{ fontSize }}px; line-height: {{ lineHeight }}px;">
+			{{item.content}}
+		</view>
+	</block>
+	<!-- <van-loading type="spinner" size="30px" vertical custom-class="list-loading" wx:if="{{ isLoading }}">加载中...
   </van-loading> -->
 </scroll-view>
 
-<van-popup show="{{ showFooter }}" overlay="{{false}}" position="bottom" custom-style="height: 220px;">
-  <view style="padding: 15px">
-    <view style="display: flex; justify-content: space-between; align-items: center;">
-      <van-button icon="/statics/images/letter2.png" disabled="{{ fontSize <= fontSizeMin }}" bind:click="fontSizeMinus"
-        custom-style="border: none" data-type="decrease" />
-      <view style="flex-grow: 1; margin: 0 15px;">
-        <van-slider use-slot step="2" min="{{ fontSizeMin }}" max="{{ fontSizeMax }}" value="{{ fontSize }}"
-          inactive-color="#e5e5e5" active-color="#e5e5e5" use-button-slot bind:drag="setFontSize">
-          <van-button slot="button" size="mini" plain round hairline>{{ fontSize }}
-          </van-button>
-        </van-slider>
-      </view>
-      <van-button icon="/statics/images/letter1.png" disabled="{{ fontSize >= fontSizeMax }}" bind:click="fontSizePlus"
-        custom-style="border: none" data-type="increase" />
-    </view>
-    <view style="display: flex; margin-top: 15px;">
-      <view style="display: flex;">
-        <van-icon name="/statics/images/line.png" style="padding: 0 15px;" />
-        <van-button round block icon="minus" size="mini" custom-style="height: 44px; min-width: 44px;"
-          disabled="{{ lineHeight <= lineHeightMin }}" bind:click="adjustLineHeight" data-type="decrease" />
-        <view style="padding: 0 15px; line-height: 44px;">{{lineHeight}}</view>
-        <van-button round block icon="plus" size="mini" custom-style="height: 44px; min-width: 44px;"
-          disabled="{{ lineHeight >= lineHeightMax }}" bind:click="adjustLineHeight" data-type="increase" />
-      </view>
-      <view style="display: flex; justify-content: center; align-items: center; margin-left: 20px; width: 200px;">
-        <van-button round icon="/statics/images/{{ theme === 'light' ? 'light' : 'dark' }}.png"
-          custom-style=" width: 100px;" bind:click="toggleTheme" />
-        <!-- <van-button
+<van-popup
+ show="{{ showFooter }}"
+ overlay="{{false}}"
+ position="bottom"
+ custom-style="height: 220px;"
+>
+	<view style="padding: 15px">
+		<view style="display: flex; justify-content: space-between; align-items: center;">
+			<van-button
+			 icon="/statics/images/letter2.png"
+			 disabled="{{ fontSize <= fontSizeMin }}"
+			 bind:click="fontSizeMinus"
+			 custom-style="border: none"
+			 data-type="decrease"
+			/>
+			<view style="flex-grow: 1; margin: 0 15px;">
+				<van-slider
+				 use-slot
+				 step="2"
+				 min="{{ fontSizeMin }}"
+				 max="{{ fontSizeMax }}"
+				 value="{{ fontSize }}"
+				 inactive-color="#e5e5e5"
+				 active-color="#e5e5e5"
+				 use-button-slot
+				 bind:drag="setFontSize"
+				>
+					<van-button
+					 slot="button"
+					 size="mini"
+					 plain
+					 round
+					 hairline
+					>{{ fontSize }}
+					</van-button>
+				</van-slider>
+			</view>
+			<van-button
+			 icon="/statics/images/letter1.png"
+			 disabled="{{ fontSize >= fontSizeMax }}"
+			 bind:click="fontSizePlus"
+			 custom-style="border: none"
+			 data-type="increase"
+			/>
+		</view>
+		<view style="display: flex; margin-top: 15px;">
+			<view style="display: flex;">
+				<van-icon name="/statics/images/line.png" style="padding: 0 15px;" />
+				<van-button
+				 round
+				 block
+				 icon="minus"
+				 size="mini"
+				 custom-style="height: 44px; min-width: 44px;"
+				 disabled="{{ lineHeight <= lineHeightMin }}"
+				 bind:click="adjustLineHeight"
+				 data-type="decrease"
+				/>
+				<view style="padding: 0 15px; line-height: 44px;">{{lineHeight}}</view>
+				<van-button
+				 round
+				 block
+				 icon="plus"
+				 size="mini"
+				 custom-style="height: 44px; min-width: 44px;"
+				 disabled="{{ lineHeight >= lineHeightMax }}"
+				 bind:click="adjustLineHeight"
+				 data-type="increase"
+				/>
+			</view>
+			<view style="display: flex; justify-content: center; align-items: center; margin-left: 20px; width: 200px;">
+				<van-button
+				 round
+				 icon="/statics/images/{{ theme === 'light' ? 'light' : 'dark' }}.png"
+				 custom-style=" width: 100px;"
+				 bind:click="toggleTheme"
+				/>
+				<!-- <van-button
 				 round
 				 color="{{ theme === 'light' ? 'black' : 'white' }}"
 				 icon="/statics/images/light{{ theme === 'light' ? '-white' : '' }}.png"
@@ -56,20 +122,33 @@
 				 custom-style="width: 60px;border-color: {{ theme === 'dark' ? 'white' : 'black' }}"
 				 bind:click="toggleTheme"
 				/> -->
-      </view>
-    </view>
-    <view style="display: flex; margin-top: 15px; justify-content: center;">
-      <van-button type="default" custom-style="width: 200px;" bind:click="switchChapters">目录</van-button>
-    </view>
-  </view>
+			</view>
+		</view>
+		<view style="display: flex; margin-top: 15px; justify-content: center;">
+			<van-button type="default" custom-style="width: 200px;" bind:click="switchChapters">目录</van-button>
+		</view>
+	</view>
 </van-popup>
 
-<van-popup show="{{ showChapters }}" bind:close="switchChapters" safe-area-inset-top position="bottom"
-  custom-style="height: 85%;" close-on-click-overlay closeable>
-  <view>
-    <view style="height: 44px; line-height: 44px; margin-left: 10px;">目录</view>
-    <van-cell border wx:for="{{ chapters }}" wx:key="title" clickable
-      title="第{{ item.seqId }}{{ item.type === 'volume' ? '卷' : '章' }} {{ item.title }}"
-      value="{{ item.startPosition }}" />
-  </view>
+<van-popup
+ show="{{ showChapters }}"
+ bind:close="switchChapters"
+ safe-area-inset-top
+ position="bottom"
+ custom-style="height: 85%;"
+ close-on-click-overlay
+ closeable
+>
+	<view>
+		<view style="height: 44px; line-height: 44px; margin-left: 10px;">目录</view>
+		<van-cell
+		 border
+		 wx:for="{{ chapters }}"
+		 wx:key="title"
+		 clickable
+		 title="{{ item.seqId }}. {{ item.title }}"
+		 value="{{ item.startPosition }}"
+		/>
+	</view>
 </van-popup>
+
