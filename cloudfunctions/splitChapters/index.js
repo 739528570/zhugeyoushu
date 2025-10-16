@@ -7,53 +7,39 @@ const db = cloud.database();
 // const cheerio = require('cheerio')
 const pdfParse = require("pdf-parse");
 
-// 优化后的卷名匹配规则
+// 卷名匹配规则
 const VOLUME_PATTERNS = [
-  // 严格匹配带"卷/部/篇"的标题
   /^[第]?([一二三四五六七八九十百千万\d]{1,4})[卷部篇集册](.*)$/,
-  // 匹配英文卷名
   /^(Volume|Book|Part)\s*([一二三四五六七八九十百千万\d]{1,4})\s*[:：]?(.*)$/i,
-  // 匹配明确的分卷标题
   /^[第]?([一二三四五六七八九十百千万\d]{1,4})[ ]?[分卷](.*)$/,
 ];
 
-// 增强后的章节匹配正则
+// 章节匹配规则
 const CHAPTER_PATTERNS = [
-  // 基础章节格式
   /^[第]([一二三四五六七八九十百千万\d]{1,4})[章回节篇幕](.*)$/,
-  // 无"第"字的章节（如"一章 标题"）
   /^([一二三四五六七八九十百千万\d]{1,4})[章回节篇幕](.*)$/,
-  // 数字+标题（如"1 标题"、"01 标题"）
   /^(\d{1,4})\s+(.*)$/,
-  // 带点的数字标题（如"1. 标题"、"001. 标题"）
   /^(\d{1,4})[.、]\s*(.*)$/,
-  // 英文章节（Chapter/Section）
   /^(Chapter|Section|Ep)\s*(\d{1,4})\s*[:：]?(.*)$/i,
-  // 特殊章节（序章、终章等）
   /^(序章|序幕|前言|引言|后记|终章|尾声|附录)(.*)$/i,
 ];
 
-// 云函数中添加解析结果校验
+// 校验并保存章节数据
 async function validateAndSaveResult(chapterCollData) {
-  // 1. 检查是否有有效章节
   const validChapters = chapterCollData.filter(
     (item) => item.type === "chapter" && item.title && !isNaN(item.seqId)
   );
 
-  // 2. 如果有效章节为0，创建基础结构
   if (validChapters.length === 0) {
     console.log("未匹配到章节，创建基础结构");
     chapterCollData = createFallbackChapters(content.length);
   }
-  console.log('validateAndSaveResult', chapterCollData)
-  // 3. 保存到数据库
-  // await db.collection("chapters").where({ bookId, openid }).remove();
-  // const batch = db.collection("chapters").batch();
-  // chapterCollData.forEach((item) => batch.add({ data: item }));
-  // return await batch.commit();
+
+  console.log("validateAndSaveResult", chapterCollData);
+  // 保存到数据库的逻辑（暂未实现）
 }
 
-// 保底章节结构创建函数
+// 创建默认章节结构
 function createFallbackChapters(contentLength) {
   const chapterCount = Math.max(1, Math.ceil(contentLength / 10000));
   const defaultVolume = {
@@ -67,19 +53,16 @@ function createFallbackChapters(contentLength) {
     updateTime: db.serverDate(),
   };
 
-  const chapters = [];
-  for (let i = 0; i < chapterCount; i++) {
-    chapters.push({
-      type: "chapter",
-      seqId: i + 1,
-      title: `第${i + 1}章`,
-      parentId: defaultVolume._id,
-      startPosition: i * 10000,
-      startLine: Math.floor((i * 10000) / 20),
-      createTime: db.serverDate(),
-      updateTime: db.serverDate(),
-    });
-  }
+  const chapters = Array.from({ length: chapterCount }, (_, i) => ({
+    type: "chapter",
+    seqId: i + 1,
+    title: `第${i + 1}章`,
+    parentId: defaultVolume._id,
+    startPosition: i * 10000,
+    startLine: Math.floor((i * 10000) / 20),
+    createTime: db.serverDate(),
+    updateTime: db.serverDate(),
+  }));
 
   return [defaultVolume, ...chapters];
 }
@@ -90,11 +73,12 @@ function createFallbackChapters(contentLength) {
  * @returns {Object} 解析结果
  */
 function parseTxtToChapterColl(content) {
-  // 1. 文本预处理
-  let cleanContent = content
+  // 文本预处理
+  const cleanContent = content
     .replace(/^声明:[\s\S]*?------------/i, "")
     .replace(/^[-=]{5,}$/gm, "")
     .replace(/^\s*$/gm, "");
+
   const lines = cleanContent
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -108,105 +92,85 @@ function parseTxtToChapterColl(content) {
   // 新增：标记是否已解析到卷
   let hasVolume = false;
 
-  // 2. 逐行解析
-  for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-    const line = lines[lineIndex];
-    let isVolume = false;
-    let isChapter = false;
+  // 逐行解析
+  for (const [lineIndex, line] of lines.entries()) {
     let matchResult = null;
 
-    // 2.1 匹配卷（仍然支持有卷的情况）
+    // 匹配卷
     for (const pattern of VOLUME_PATTERNS) {
       matchResult = line.match(pattern);
       if (matchResult) {
-        isVolume = true;
-        hasVolume = true; // 标记已找到卷
-        break;
+        hasVolume = true;
+        volumeSeq++;
+        const chineseNumStr = matchResult[1];
+        const seqId =
+          chineseToNumber(chineseNumStr) === -1
+            ? volumeSeq
+            : chineseToNumber(chineseNumStr);
+        const title = matchResult[2] ? matchResult[2].trim() : `第${seqId}卷`;
+        const startPosition = lineIndex * 20;
+
+        const volumeData = {
+          type: "volume",
+          seqId,
+          title,
+          parentId: null,
+          startPosition,
+          startLine: lineIndex,
+          createTime: db.serverDate(),
+          updateTime: db.serverDate(),
+        };
+        chapterCollData.push(volumeData);
+        currentVolumeId = volumeData._id;
+        continue;
       }
     }
 
-    if (isVolume) {
-      // 卷处理逻辑（同之前）
-      volumeSeq++;
-      const chineseNumStr = matchResult[1];
-      const seqId =
-        chineseToNumber(chineseNumStr) === -1
-          ? volumeSeq
-          : chineseToNumber(chineseNumStr);
-      const title = matchResult[2] ? matchResult[2].trim() : `第${seqId}卷`;
-      const startPosition = lineIndex * 20;
-
-      const volumeData = {
-        type: "volume",
-        seqId,
-        title,
-        parentId: null,
-        startPosition,
-        startLine: lineIndex,
-        createTime: db.serverDate(),
-        updateTime: db.serverDate(),
-      };
-      chapterCollData.push(volumeData);
-      currentVolumeId = volumeData._id;
-      continue;
-    }
-
-    // 2.2 匹配章节（关键优化：无论是否有卷，都可以解析章节）
+    // 匹配章节
     for (const pattern of CHAPTER_PATTERNS) {
       matchResult = line.match(pattern);
       if (matchResult) {
-        isChapter = true;
+        chapterSeq++;
+        let seqId, title;
+
+        if (matchResult.length === 4) {
+          const chineseNumStr = matchResult[2];
+          seqId =
+            chineseToNumber(chineseNumStr) === -1
+              ? chapterSeq
+              : chineseToNumber(chineseNumStr);
+          title = matchResult[3] ? matchResult[3].trim() : `第${seqId}章`;
+        } else {
+          const chineseNumStr = matchResult[1];
+          seqId =
+            chineseToNumber(chineseNumStr) === -1
+              ? chapterSeq
+              : chineseToNumber(chineseNumStr);
+          title = matchResult[2] ? matchResult[2].trim() : `第${seqId}章`;
+        }
+
+        const chapterData = {
+          type: "chapter",
+          seqId,
+          title,
+          parentId: currentVolumeId || null,
+          startPosition: lineIndex * 20,
+          startLine: lineIndex,
+          createTime: db.serverDate(),
+          updateTime: db.serverDate(),
+        };
+        chapterCollData.push(chapterData);
         break;
       }
     }
-
-    if (isChapter) {
-      chapterSeq++;
-      let seqId;
-      let title;
-
-      if (matchResult.length === 4) {
-        const chineseNumStr = matchResult[2];
-        seqId =
-          chineseToNumber(chineseNumStr) === -1
-            ? chapterSeq
-            : chineseToNumber(chineseNumStr);
-        title = matchResult[3] ? matchResult[3].trim() : `第${seqId}章`;
-      } else {
-        const chineseNumStr = matchResult[1];
-        seqId =
-          chineseToNumber(chineseNumStr) === -1
-            ? chapterSeq
-            : chineseToNumber(chineseNumStr);
-        title = matchResult[2] ? matchResult[2].trim() : `第${seqId}章`;
-      }
-
-      const startPosition = lineIndex * 20;
-
-      // 章节数据（关键优化：如果没有卷，parentId设为null）
-      const chapterData = {
-        type: "chapter",
-        seqId,
-        title,
-        parentId: currentVolumeId || null, // 无卷时为null
-        startPosition,
-        startLine: lineIndex,
-        createTime: db.serverDate(),
-        updateTime: db.serverDate(),
-      };
-      chapterCollData.push(chapterData);
-    }
   }
 
-  // 3. 关键优化：如果没有卷但有章节，自动创建一个默认卷
-  if (
-    !hasVolume &&
-    chapterCollData.filter((item) => item.type === "chapter").length > 0
-  ) {
+  // 如果没有卷但有章节，自动创建默认卷
+  if (!hasVolume && chapterCollData.some((item) => item.type === "chapter")) {
     const defaultVolume = {
       type: "volume",
       seqId: 1,
-      title: "正文", // 默认卷名
+      title: "正文",
       parentId: null,
       startPosition: 0,
       startLine: 0,
@@ -214,24 +178,18 @@ function parseTxtToChapterColl(content) {
       updateTime: db.serverDate(),
     };
 
-    // 将所有章节关联到默认卷
     chapterCollData.forEach((item) => {
-      if (item.type === "chapter") {
-        item.parentId = defaultVolume._id;
-      }
+      if (item.type === "chapter") item.parentId = defaultVolume._id;
     });
 
-    // 添加默认卷到集合最前面
     chapterCollData.unshift(defaultVolume);
   }
 
-  // 4. 最终防护：如果解析结果为空，创建基础章节结构
+  // 如果解析结果为空，创建基础章节结构
   if (chapterCollData.length === 0) {
-    // 按固定长度拆分章节（保底方案）
     const totalChars = cleanContent.length;
-    const chapterCount = Math.max(1, Math.ceil(totalChars / 10000)); // 每10000字符一章
+    const chapterCount = Math.max(1, Math.ceil(totalChars / 10000));
 
-    // 创建默认卷
     const defaultVolume = {
       type: "volume",
       seqId: 1,
@@ -244,7 +202,6 @@ function parseTxtToChapterColl(content) {
     };
     chapterCollData.push(defaultVolume);
 
-    // 创建章节
     for (let i = 0; i < chapterCount; i++) {
       chapterCollData.push({
         type: "chapter",
@@ -252,7 +209,7 @@ function parseTxtToChapterColl(content) {
         title: `第${i + 1}章`,
         parentId: defaultVolume._id,
         startPosition: i * 10000,
-        startLine: Math.floor((i * 10000) / 20), // 估算行号
+        startLine: Math.floor((i * 10000) / 20),
         createTime: db.serverDate(),
         updateTime: db.serverDate(),
       });
@@ -413,12 +370,11 @@ function parseTxtToChapterColl(content) {
 // }
 
 /**
- * 中文数字转阿拉伯数字（支持一~十、百、千，覆盖小说常见场景）
+ * 中文数字转阿拉伯数字
  * @param {String} chineseNum 中文数字（如"一""十一""一百二"）
  * @returns {Number} 阿拉伯数字，转换失败返回-1
  */
 function chineseToNumber(chineseNum) {
-  // 基础数字映射
   const numMap = {
     零: 0,
     一: 1,
@@ -435,13 +391,10 @@ function chineseToNumber(chineseNum) {
     千: 1000,
   };
 
-  // 处理“十一~九十九”（如“十一”=11，“九十一”=91）
   if (/^十[一二三四五六七八九十]?$/.test(chineseNum)) {
-    if (chineseNum === "十") return 10;
-    return 10 + numMap[chineseNum[1]];
+    return chineseNum === "十" ? 10 : 10 + numMap[chineseNum[1]];
   }
 
-  // 处理“一百~九百九十九”（如“一百二”=120，“三百零五”暂不支持，简化为300）
   if (/^[一二三四五六七八九十]百[一二三四五六七八九十]?$/.test(chineseNum)) {
     const baiIndex = chineseNum.indexOf("百");
     const baiPart = numMap[chineseNum[baiIndex - 1]] * 100;
@@ -451,82 +404,42 @@ function chineseToNumber(chineseNum) {
     return baiPart + gePart;
   }
 
-  // 直接映射（一~九、十、百、千）
   if (numMap[chineseNum]) return numMap[chineseNum];
 
-  // 若为阿拉伯数字字符串，直接转换（如“12”→12）
   const arabicNum = parseInt(chineseNum);
-  if (!isNaN(arabicNum)) return arabicNum;
-
-  // 转换失败返回-1（后续处理默认值）
-  return -1;
+  return !isNaN(arabicNum) ? arabicNum : -1;
 }
 
 /**
  * 主函数：根据文件类型解析章节信息
  */
-exports.main = async (event, context) => {
+exports.main = async (event) => {
   try {
-    const { bookId, fileType = "TXT", fileUrl } = event;
+    const { bookId, fileType = "TXT", fileUrl, encoding } = event;
     const wxContext = cloud.getWXContext();
     const openid = wxContext.OPENID;
+
     if (!bookId || !fileType || !fileUrl) {
-      return {
-        code: 400,
-        message: "参数不完整",
-        success: false,
-      };
+      return { code: 400, message: "参数不完整", success: false };
     }
 
-    // 1. 从云存储下载文件
-    // const doc = await db.collection('documents')
-    //   .where({
-    //     _id: bookId,
-    //     openid
-    //   })
-    //   .get()
+    const downloadResult = await cloud.downloadFile({ fileID: fileUrl });
+    const decoder = new TextDecoder(encoding);
+    const fileContent = decoder.decode(downloadResult.fileContent);
 
-    // if (doc.data.length === 0) {
-    //   return {
-    //     code: 404,
-    //     message: '文档不存在',
-    //     success: false
-    //   }
-    // }
-
-    // const fileUrl = doc.data[0].fileUrl
-    const downloadResult = await cloud.downloadFile({
-      fileID: fileUrl,
-    });
-    const fileContent = downloadResult.fileContent;
-
-    // 2. 根据文件类型解析章节
-    let chaptersResult = null;
-
+    let chaptersResult;
     switch (fileType.toUpperCase()) {
       case "TXT":
-        chaptersResult = parseTxtToChapterColl(
-          fileContent.toString("utf8"),
-          bookId,
-          openid
-        );
+        chaptersResult = parseTxtToChapterColl(fileContent);
         break;
       case "EPUB":
-        // chaptersResult = await parseEpubChapters(fileContent)
-        break;
       case "PDF":
-        // chaptersResult = await parsePdfChapters(fileContent);
-        break;
+        return { code: 400, message: "暂不支持的文件类型", success: false };
       default:
-        return {
-          code: 400,
-          message: "不支持的文件类型",
-          success: false,
-        };
+        return { code: 400, message: "不支持的文件类型", success: false };
     }
-    console.log("chaptersResult", chaptersResult);
-    await validateAndSaveResult(chaptersResult)
-    // 3. 保存章节信息到数据库
+
+    await validateAndSaveResult(chaptersResult);
     await db.collection("chapters").add({
       data: {
         bookId,
@@ -545,11 +458,6 @@ exports.main = async (event, context) => {
     };
   } catch (err) {
     console.error("章节解析失败:", err);
-    return {
-      code: 500,
-      message: "章节解析失败",
-      error: err,
-      success: false,
-    };
+    return { code: 500, message: "章节解析失败", error: err, success: false };
   }
 };

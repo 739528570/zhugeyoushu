@@ -144,9 +144,9 @@
 		<van-cell
 		 border
 		 wx:for="{{ chapters }}"
-		 wx:key="title"
+		 wx:key="index"
 		 clickable
-		 title="{{ item.seqId }}. {{ item.title }}"
+		 title="第{{ item.seqId }}{{ item.type === 'chapter' ? '章' : '卷' }} {{ item.title }}"
 		 value="{{ item.startPosition }}"
 		/>
 	</view>

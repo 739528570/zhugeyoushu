@@ -47,26 +47,10 @@ Component({
           console.log(res);
           const file = res.tempFiles[0];
           const { name, size } = file;
-          // 1. 验证文件大小（不超过50MB）
-          if (size > 50 * 1024 * 1024) {
-            wx.showToast({
-              title: "文件过大（最大50MB）",
-              icon: "none",
-              duration: 2000,
-            });
-            return;
-          }
 
-          // 2. 验证文件格式
-          const fileExt = name.split(".").pop().toLowerCase();
-          if (!that.data.supportFormats.includes(fileExt)) {
-            wx.showToast({
-              title: "不支持的文件格式",
-              icon: "none",
-              duration: 2000,
-            });
-            return;
-          }
+          // 验证文件
+          if (!that.validateFile(name, size)) return;
+
           that.setData({
             show: true,
             uploadFileName: name,
@@ -81,6 +65,32 @@ Component({
       });
     },
 
+    // 验证文件大小和格式
+    validateFile(name, size) {
+      const that = this;
+      // 1. 验证文件大小（不超过50MB）
+      if (size > 50 * 1024 * 1024) {
+        wx.showToast({
+          title: "文件过大（最大50MB）",
+          icon: "none",
+          duration: 2000,
+        });
+        return false;
+      }
+
+      // 2. 验证文件格式
+      const fileExt = name.split(".").pop().toLowerCase();
+      if (!that.data.supportFormats.includes(fileExt)) {
+        wx.showToast({
+          title: "不支持的文件格式",
+          icon: "none",
+          duration: 2000,
+        });
+        return false;
+      }
+      return true;
+    },
+
     // 上传到云存储并调用云函数记录
     async uploadToCloud(file) {
       const that = this;
@@ -93,15 +103,9 @@ Component({
       const { path, name, size } = file;
       const fileExt = name.split(".").pop().toLowerCase();
       const fileName = name.split(".").shift();
+      // 验证用户信息
       if (!openid) {
-        wx.showToast({
-          title: "用户信息获取失败",
-          icon: "none",
-          duration: 2000,
-        });
-        that.setData({
-          uploadLoading: false,
-        });
+        that.handleError("用户信息获取失败");
         return;
       }
 
@@ -154,9 +158,10 @@ Component({
                 bookId,
                 fileType: fileExt.toUpperCase(),
                 fileUrl: res.fileID,
+                encoding,
               },
             });
-
+            console.log("splitChapters", resp);
             // 本地缓存
             await app.addLocalFile(bookId, path);
             await app.addStorageChapter(bookId, resp.result.data || []);
@@ -168,35 +173,11 @@ Component({
             });
             that.triggerEvent("onOk", {}, {});
           } catch (error) {
-            that.triggerEvent("onOk", {}, {});
-            console.error(error);
-            that.setData({
-              show: false,
-              uploadLoading: false,
-              uploadComplete: true,
-              uploadSuccess: false,
-            });
-            wx.showToast({
-              title: "上传失败，请稍后重试",
-              icon: "none",
-              duration: 2000,
-            });
+            that.handleError("上传失败，请稍后重试", error);
           }
         },
         fail: (err) => {
-          that.triggerEvent("onOk", {}, {});
-          console.error("wx.cloud.uploadFile fail", err);
-          that.setData({
-            show: false,
-            uploadLoading: false,
-            uploadComplete: true,
-            uploadSuccess: false,
-          });
-          wx.showToast({
-            title: "上传失败，请稍后重试",
-            icon: "none",
-            duration: 2000,
-          });
+          that.handleError("上传失败，请稍后重试", err);
         },
       });
 
@@ -209,6 +190,24 @@ Component({
       //     progress: res.progress,
       //   });
       // });
+    },
+
+    // 统一错误处理
+    handleError(message, error = null) {
+      const that = this;
+      if (error) console.error(error);
+      that.triggerEvent("onOk", {}, {});
+      that.setData({
+        show: false,
+        uploadLoading: false,
+        uploadComplete: true,
+        uploadSuccess: false,
+      });
+      wx.showToast({
+        title: message,
+        icon: "none",
+        duration: 2000,
+      });
     },
 
     // 取消上传

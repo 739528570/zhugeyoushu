@@ -114,7 +114,7 @@ App({
   async addStorageChapter(bookId, chapter) {
     try {
       const chapters = (await wx.getStorageSync("chapters")) || {};
-      chapters[bookId] = chapter?.[0]?.chapters ?? [];
+      chapters[bookId] = chapter ?? [];
       await wx.setStorageSync("chapters", chapters);
     } catch (error) {
       console.error("addStorageChapter", error);

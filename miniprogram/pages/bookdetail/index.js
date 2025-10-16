@@ -522,13 +522,8 @@ Page({
 
   // 修改saveReadingProgress方法，增加更详细的进度信息
   saveReadingProgress() {
-    const {
-      bookId,
-      currentChunkIndex,
-      scrollTop,
-      totalLength,
-      contentChunks,
-    } = this.data;
+    const { bookId, currentChunkIndex, scrollTop, totalLength, contentChunks } =
+      this.data;
 
     // 计算更精确的进度
     const currentChunk = contentChunks.find(
