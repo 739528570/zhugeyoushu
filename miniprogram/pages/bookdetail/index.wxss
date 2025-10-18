@@ -9,3 +9,18 @@
 .book-content:first-child {
   padding-top: 160rpx; 
 }
+/* .catalog-btn {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 100;
+} */
+
+.chapter-item {
+  padding: 12px 16px;
+}
+
+.chapter-item.active {
+  background-color: #f5f5f5;
+  color: #1989fa; /* 高亮颜色，与主题一致 */
+}

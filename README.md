@@ -11,11 +11,10 @@
 - [云开发文档](https://developers.weixin.qq.com/miniprogram/dev/wxcloud/basis/getting-started.html)
 
 问题
-1、从云端下载文本加载慢
+<!-- 1、从云端下载文本加载慢
 2、分章节
 3、缓存
-
 4、弱网使用缓存
 5、小说编码格式GB2312、GBK 或 GB18030，wx.getFileSystemManager().readFile不支持
-6、小说过大会导致内存过载
+6、小说过大会导致内存过载 -->
 7、实现目录跳转

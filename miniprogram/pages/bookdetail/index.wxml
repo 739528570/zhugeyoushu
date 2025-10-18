@@ -16,7 +16,7 @@
 <scroll-view
  scroll-y="true"
  enable-passive
- show-scrollbar="{{ false }}"
+ show-scrollbar="{{ true }}"
  scroll-top="{{ scrollTop }}"
  bind:scroll="onScroll"
  bind:tap="switchFooter"
@@ -148,6 +148,10 @@
 		 clickable
 		 title="第{{ item.seqId }}{{ item.type === 'chapter' ? '章' : '卷' }} {{ item.title }}"
 		 value="{{ item.startPosition }}"
+     custom-class="chapter-item {{ currentChapterId === item.seqId ? 'active' : '' }}"
+     bind:click="jumpToChapter"
+     data-chapter="{{ item }}"
+     
 		/>
 	</view>
 </van-popup>

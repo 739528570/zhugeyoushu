@@ -17,6 +17,8 @@ Page({
     currentPosition: 0, // 当前阅读位置（字符索引）
     chunkSize: 10000, // 每次加载的字符数（约20KB，可根据实际调整）
 
+    currentChapterId: 1,
+
     // 阅读相关
     scrollTop: 0, // 滚动位置
     fontSize: 16, // 字体大小

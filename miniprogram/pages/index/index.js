@@ -130,7 +130,7 @@ Page({
       });
       const chapters = res.result.data?.chapters;
       if (chapters?.length) {
-        await app.addStorageChapter(item._id, chapters);
+        await app.addStorageChapter(item._id, chapters[0].chapters);
       }
       // 从云存储下载文件
       const file = await wx.cloud.downloadFile({
