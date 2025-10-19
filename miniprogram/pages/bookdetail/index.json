@@ -12,6 +12,7 @@
     "van-action-sheet": "@vant/weapp/action-sheet/index",
     "van-cell": "@vant/weapp/cell/index",
     "van-cell-group": "@vant/weapp/cell-group/index",
-    "van-divider": "@vant/weapp/divider/index"
+    "van-divider": "@vant/weapp/divider/index",
+    "van-overlay": "@vant/weapp/overlay/index"
   }
 }

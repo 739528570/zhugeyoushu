@@ -3,11 +3,11 @@
   display: flex !important;
 }
 .book-content {
-  width: 95%; 
-  margin: 0 auto; 
+  /* width: 95%; 
+  margin: 0 auto;  */
 }
 .book-content:first-child {
-  padding-top: 160rpx; 
+  /* padding-top: 108px;  */
 }
 /* .catalog-btn {
   position: fixed;
