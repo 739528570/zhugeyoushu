@@ -108,7 +108,7 @@ Page({
     } catch (error) {
       console.error("error", error);
       wx.showToast({
-        title: "跳转失败，请稍后重试！",
+        title: "网络错误",
         icon: "none",
         duration: 2000,
       });

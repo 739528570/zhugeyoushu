@@ -100,13 +100,11 @@ Page({
   async getLocalConfig() {
     try {
       const readerConfig = await wx.getStorageSync("readerConfig");
-      if (readerConfig) {
-        this.setData({
-          ...readerConfig,
-          barHeight: wx.getWindowInfo().statusBarHeight + 46,
-          windowHeight: wx.getWindowInfo().windowHeight,
-        });
-      }
+      console.log('getLocalConfig', readerConfig)
+      this.setData(Object.assign({
+        barHeight: wx.getWindowInfo().statusBarHeight + 46,
+        windowHeight: wx.getWindowInfo().windowHeight,
+      }, readerConfig));
     } catch (error) {
       console.error("GET STORAGE CONFIG ERROR:", error);
     }

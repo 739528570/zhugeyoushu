@@ -1,7 +1,7 @@
 <!--pages/bookdetail/index.wxml-->
 
 <van-popup show="{{ showHeaderBar }}" overlay="{{false}}" position="top" custom-style="height: {{ barHeight }}px;">
-  <van-nav-bar id='van-nav-bar' fixed left-arrow title="{{ title }}" bind:click-left="backHome" />
+  <van-nav-bar  fixed left-arrow title="{{ title }}" bind:click-left="backHome" />
 </van-popup>
 
 <van-overlay show="{{ initLoading }}"
