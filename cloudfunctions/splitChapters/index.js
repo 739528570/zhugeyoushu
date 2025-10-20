@@ -7,39 +7,43 @@ const db = cloud.database();
 // const cheerio = require('cheerio')
 const pdfParse = require("pdf-parse");
 
-// 性能优化：调整正则匹配顺序，高频模式前置
-const OPTIMIZED_CHAPTER_PATTERNS = [
-  /^(\d{1,4})[.、]\s*(.*)$/, // 数字+点/顿号（最常见，85%情况）
-  /^[第]([一二三四五六七八九十百千万\d]{1,4})[章回节篇幕](.*)$/, // 第X章（10%情况）
-  /^(\d{1,4})\s+(.*)$/, // 数字+空格（3%情况）
-  /^([一二三四五六七八九十百千万\d]{1,4})[章回节篇幕](.*)$/, // X章（1.5%情况）
-  /^(序章|序幕|前言|引言|后记|终章|尾声|附录)(.*)$/i, // 特殊章节（0.4%）
-  /^(Chapter|Section|Ep)\s*(\d{1,4})\s*[:：]?(.*)$/i, // 英文章节（0.1%）
-];
-
 /**
  * 解析TXT格式小说的章节信息
  * @param {String} content 文本内容
  * @returns {Object} 解析结果
  */
 function parseTxtToChapterColl(originalContent) {
-  // 1. 单次遍历同时记录原始信息和处理信息
+  const CHAPTER_PATTERNS = [
+    /^(\d{1,4})[.、]\s*(.*)$/,
+    /^[第]([一二三四五六七八九十百千万\d]{1,4})[章回节篇幕](.*)$/,
+    /^(\d{1,4})\s+(.*)$/,
+    /^([一二三四五六七八九十百千万\d]{1,4})[章回节篇幕](.*)$/,
+    /^(序章|序幕|前言|引言|后记|终章|尾声|附录)(.*)$/i,
+    /^(Chapter|Section|Ep)\s*(\d{1,4})\s*[:：]?(.*)$/i,
+  ];
+
+  // 1. 准确记录每行的起始位置和换行符长度
   const linesInfo = [];
-  let currentPos = 0;
   let lineIndex = 0;
 
-  // 使用更高效的分行方法（相比逐字符扫描）
-  const rawLines = originalContent.split(/\r\n|\n|\r/);
+  // 使用更准确的行分割方法，考虑不同换行符
+  const lineBreakRegex = /\r\n|\n|\r/g;
+  let lastIndex = 0;
+  let match;
 
-  for (const rawLine of rawLines) {
-    const trimmedLine = rawLine.trim();
+  while ((match = lineBreakRegex.exec(originalContent)) !== null) {
+    const lineEnd = match.index;
+    const lineContent = originalContent.substring(lastIndex, lineEnd);
+    const lineBreakLength = match[0].length; // 记录换行符实际长度
 
-    // 提前过滤：只处理可能包含章节标题的行
+    const trimmedLine = lineContent.trim();
+
     if (trimmedLine.length >= 2 && trimmedLine.length <= 50) {
       linesInfo.push({
-        original: rawLine,
+        original: lineContent,
         trimmed: trimmedLine,
-        startPos: currentPos,
+        startPos: lastIndex, // 行的实际起始位置（包含前导空白）
+        lineBreakLength: lineBreakLength,
         lineIndex: lineIndex,
         isPotentialChapter: /^[\d第序前引后终尾附]|^(Chapter|Section|Ep)/i.test(
           trimmedLine
@@ -47,32 +51,47 @@ function parseTxtToChapterColl(originalContent) {
       });
     }
 
-    // 更新位置（原始行长度 + 换行符长度）
-    currentPos += rawLine.length + 1; // +1 为换行符
+    lastIndex = lineEnd + lineBreakLength;
     lineIndex++;
+  }
+
+  // 处理最后一行（如果没有换行符结尾）
+  if (lastIndex < originalContent.length) {
+    const lineContent = originalContent.substring(lastIndex);
+    const trimmedLine = lineContent.trim();
+
+    if (trimmedLine.length >= 2 && trimmedLine.length <= 50) {
+      linesInfo.push({
+        original: lineContent,
+        trimmed: trimmedLine,
+        startPos: lastIndex,
+        lineBreakLength: 0, // 最后一行没有换行符
+        lineIndex: lineIndex,
+        isPotentialChapter: /^[\d第序前引后终尾附]|^(Chapter|Section|Ep)/i.test(
+          trimmedLine
+        ),
+      });
+    }
   }
 
   const chapterCollData = [];
   let chapterSeq = 0;
 
-  // 2. 优化匹配逻辑：优先检查可能包含章节的行
+  // 2. 匹配章节标题
   for (const lineInfo of linesInfo) {
-    // 快速跳过明显不是章节标题的行
     if (!lineInfo.isPotentialChapter) continue;
 
     const cleanLine = lineInfo.trimmed;
     let matchResult = null;
 
-    // 使用优化后的模式顺序进行匹配
-    for (const pattern of OPTIMIZED_CHAPTER_PATTERNS) {
+    for (const pattern of CHAPTER_PATTERNS) {
       matchResult = cleanLine.match(pattern);
       if (matchResult) {
         chapterSeq++;
 
         let seqId, title;
 
-        // 优化：减少条件判断分支
-        if (pattern === OPTIMIZED_CHAPTER_PATTERNS[5]) {
+        if (pattern === CHAPTER_PATTERNS[5]) {
           // 英文章节特殊处理
           seqId = parseInt(matchResult[2]) || chapterSeq;
           title = matchResult[3] ? matchResult[3].trim() : `Chapter ${seqId}`;
@@ -86,36 +105,42 @@ function parseTxtToChapterColl(originalContent) {
           title = cleanLine;
         }
 
+        // 关键修复：使用包含前导空白的原始行起始位置
+        // 这样截取时能准确包含章节标题行的完整内容
         const chapterData = {
           seqId,
           title,
-          startPosition: lineInfo.startPos,
+          startPosition: lineInfo.startPos, // 包含前导空白的准确位置
           startLine: lineInfo.lineIndex,
           createTime: db.serverDate(),
           updateTime: db.serverDate(),
         };
 
         chapterCollData.push(chapterData);
-        break; // 匹配成功立即跳出
+        break;
       }
     }
   }
 
-  // 3. 优化endPosition计算（单次遍历）
+  // 3. 准确计算每章的结束位置
   if (chapterCollData.length > 0) {
     const contentLength = originalContent.length;
 
     for (let i = 0; i < chapterCollData.length; i++) {
-      chapterCollData[i].endPosition =
-        i < chapterCollData.length - 1
-          ? chapterCollData[i + 1].startPosition
-          : contentLength;
+      const currentChapter = chapterCollData[i];
+
+      if (i < chapterCollData.length - 1) {
+        const nextChapter = chapterCollData[i + 1];
+        // 结束位置是下一章开始位置的前一个字符
+        // 这样当前章内容包含从startPosition到endPosition-1
+        currentChapter.endPosition = nextChapter.startPosition;
+      } else {
+        // 最后一章结束位置是文件末尾
+        currentChapter.endPosition = contentLength;
+      }
     }
   }
-
-  console.log(
-    `章节解析完成: 共${chapterCollData.length}章, 处理${linesInfo.length}行`
-  );
+  
   return chapterCollData;
 }
 

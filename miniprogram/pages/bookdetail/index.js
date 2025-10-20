@@ -446,12 +446,16 @@ Page({
       inx === undefined || index === inx
         ? {
             ...item,
-            content: `<div style="width: 95%;margin: ${
+            content: `<div style="width: 90%;margin: ${
               inx !== undefined ? inx : index === 0 ? this.data.barHeight : 0
-            }px auto;">${item.content}</div>`,
+            }px auto 0;">${item.content}</div>`,
           }
         : item
     );
+  },
+
+  ongesture(e) {
+    console.log(e)
   },
 
   // 页面卸载时保存阅读进度
