@@ -7,13 +7,6 @@ const db = cloud.database();
 // const cheerio = require('cheerio')
 const pdfParse = require("pdf-parse");
 
-// 卷名匹配规则
-const VOLUME_PATTERNS = [
-  /^[第]?([一二三四五六七八九十百千万\d]{1,4})[卷部篇集册](.*)$/,
-  /^(Volume|Book|Part)\s*([一二三四五六七八九十百千万\d]{1,4})\s*[:：]?(.*)$/i,
-  /^[第]?([一二三四五六七八九十百千万\d]{1,4})[ ]?[分卷](.*)$/,
-];
-
 // 章节匹配规则
 const CHAPTER_PATTERNS = [
   /^[第]([一二三四五六七八九十百千万\d]{1,4})[章回节篇幕](.*)$/,
@@ -24,111 +17,75 @@ const CHAPTER_PATTERNS = [
   /^(序章|序幕|前言|引言|后记|终章|尾声|附录)(.*)$/i,
 ];
 
-// 校验并保存章节数据
-async function validateAndSaveResult(chapterCollData) {
-  const validChapters = chapterCollData.filter(
-    (item) => item.type === "chapter" && item.title && !isNaN(item.seqId)
-  );
-
-  if (validChapters.length === 0) {
-    console.log("未匹配到章节，创建基础结构");
-    chapterCollData = createFallbackChapters(content.length);
-  }
-
-  console.log("validateAndSaveResult", chapterCollData);
-  // 保存到数据库的逻辑（暂未实现）
-}
-
-// 创建默认章节结构
-function createFallbackChapters(contentLength) {
-  const chapterCount = Math.max(1, Math.ceil(contentLength / 10000));
-  const defaultVolume = {
-    type: "volume",
-    seqId: 1,
-    title: "正文",
-    parentId: null,
-    startPosition: 0,
-    startLine: 0,
-    createTime: db.serverDate(),
-    updateTime: db.serverDate(),
-  };
-
-  const chapters = Array.from({ length: chapterCount }, (_, i) => ({
-    type: "chapter",
-    seqId: i + 1,
-    title: `第${i + 1}章`,
-    parentId: defaultVolume._id,
-    startPosition: i * 10000,
-    startLine: Math.floor((i * 10000) / 20),
-    createTime: db.serverDate(),
-    updateTime: db.serverDate(),
-  }));
-
-  return [defaultVolume, ...chapters];
-}
-
 /**
  * 解析TXT格式小说的章节信息
  * @param {String} content 文本内容
  * @returns {Object} 解析结果
  */
-function parseTxtToChapterColl(content) {
-  // 文本预处理
-  const cleanContent = content
-    .replace(/^声明:[\s\S]*?------------/i, "")
-    .replace(/^[-=]{5,}$/gm, "")
-    .replace(/^\s*$/gm, "");
+function parseTxtToChapterColl(originalContent) {
+  // 接收原始内容而非处理后内容
+  // 1. 先记录原始文本每行的起始位置（含所有字符，包括换行符）
+  const linePositions = []; // 存储每行在原始文本中的起始索引
+  const originalLines = []; // 存储原始行（未trim，未过滤）
+  let currentPosition = 0;
 
-  const lines = cleanContent
-    .split(/\r?\n/)
+  // 逐字符扫描，精准分割行并记录位置（处理所有换行符情况）
+  let currentLine = [];
+  for (let i = 0; i < originalContent.length; i++) {
+    const char = originalContent[i];
+    currentLine.push(char);
+
+    // 检测换行符
+    if (char === "\n") {
+      originalLines.push(currentLine.join(""));
+      linePositions.push(currentPosition);
+      currentPosition = i + 1; // 下一行起始位置（跳过当前换行符）
+      currentLine = [];
+    } else if (
+      char === "\r" &&
+      i + 1 < originalContent.length &&
+      originalContent[i + 1] === "\n"
+    ) {
+      // 处理\r\n（占2字节）
+      currentLine.push(originalContent[i + 1]); // 包含\n
+      originalLines.push(currentLine.join(""));
+      linePositions.push(currentPosition);
+      currentPosition = i + 2; // 跳过\r\n
+      currentLine = [];
+      i++; // 跳过已处理的\n
+    }
+  }
+  // 处理最后一行（无换行符结尾）
+  if (currentLine.length > 0) {
+    originalLines.push(currentLine.join(""));
+    linePositions.push(currentPosition);
+  }
+
+  // 2. 文本预处理（仅用于标题识别，不影响位置计算）
+  const cleanLines = originalLines
     .map((line) => line.trim())
     .filter((line) => line.length >= 2 && line.length <= 50);
 
   const chapterCollData = [];
-  let currentVolumeId = null;
-  let volumeSeq = 0;
   let chapterSeq = 0;
 
-  // 新增：标记是否已解析到卷
-  let hasVolume = false;
+  // 3. 逐行匹配标题（用cleanLines识别，用originalLines的位置）
+  for (const [lineIndex, cleanLine] of cleanLines.entries()) {
+    // 找到原始行的索引（因为cleanLines是过滤后的，需映射回originalLines）
+    const originalLineIndex = originalLines.findIndex(
+      (originalLine, idx) =>
+        originalLine.trim() === cleanLine && idx >= lineIndex
+    );
+    if (originalLineIndex === -1) continue;
 
-  // 逐行解析
-  for (const [lineIndex, line] of lines.entries()) {
+    // 原始行的起始位置（核心：用原始文本的位置）
+    const startPosition = linePositions[originalLineIndex];
+
     let matchResult = null;
 
-    // 匹配卷
-    for (const pattern of VOLUME_PATTERNS) {
-      matchResult = line.match(pattern);
-      if (matchResult) {
-        hasVolume = true;
-        volumeSeq++;
-        const chineseNumStr = matchResult[1];
-        const seqId =
-          chineseToNumber(chineseNumStr) === -1
-            ? volumeSeq
-            : chineseToNumber(chineseNumStr);
-        const title = matchResult[2] ? matchResult[2].trim() : `第${seqId}卷`;
-        const startPosition = lineIndex * 20;
-
-        const volumeData = {
-          type: "volume",
-          seqId,
-          title,
-          parentId: null,
-          startPosition,
-          startLine: lineIndex,
-          createTime: db.serverDate(),
-          updateTime: db.serverDate(),
-        };
-        chapterCollData.push(volumeData);
-        currentVolumeId = volumeData._id;
-        continue;
-      }
-    }
-
-    // 匹配章节
+    // 匹配章节（位置用startPosition）
     for (const pattern of CHAPTER_PATTERNS) {
-      matchResult = line.match(pattern);
+      matchResult = cleanLine.match(pattern);
       if (matchResult) {
         chapterSeq++;
         let seqId, title;
@@ -150,12 +107,10 @@ function parseTxtToChapterColl(content) {
         }
 
         const chapterData = {
-          type: "chapter",
           seqId,
           title,
-          parentId: currentVolumeId || null,
-          startPosition: lineIndex * 20,
-          startLine: lineIndex,
+          startPosition, // 原始文本中的起始位置
+          startLine: originalLineIndex, // 原始行号
           createTime: db.serverDate(),
           updateTime: db.serverDate(),
         };
@@ -165,57 +120,13 @@ function parseTxtToChapterColl(content) {
     }
   }
 
-  // 如果没有卷但有章节，自动创建默认卷
-  if (!hasVolume && chapterCollData.some((item) => item.type === "chapter")) {
-    const defaultVolume = {
-      type: "volume",
-      seqId: 1,
-      title: "正文",
-      parentId: null,
-      startPosition: 0,
-      startLine: 0,
-      createTime: db.serverDate(),
-      updateTime: db.serverDate(),
-    };
-
-    chapterCollData.forEach((item) => {
-      if (item.type === "chapter") item.parentId = defaultVolume._id;
-    });
-
-    chapterCollData.unshift(defaultVolume);
+  // 在循环解析完成后补充endPosition
+  for (let i = 0; i < chapterCollData.length; i++) {
+    const current = chapterCollData[i];
+    const next = chapterCollData[i + 1];
+    current.endPosition = next ? next.startPosition : originalContent.length;
   }
-
-  // 如果解析结果为空，创建基础章节结构
-  if (chapterCollData.length === 0) {
-    const totalChars = cleanContent.length;
-    const chapterCount = Math.max(1, Math.ceil(totalChars / 10000));
-
-    const defaultVolume = {
-      type: "volume",
-      seqId: 1,
-      title: "正文",
-      parentId: null,
-      startPosition: 0,
-      startLine: 0,
-      createTime: db.serverDate(),
-      updateTime: db.serverDate(),
-    };
-    chapterCollData.push(defaultVolume);
-
-    for (let i = 0; i < chapterCount; i++) {
-      chapterCollData.push({
-        type: "chapter",
-        seqId: i + 1,
-        title: `第${i + 1}章`,
-        parentId: defaultVolume._id,
-        startPosition: i * 10000,
-        startLine: Math.floor((i * 10000) / 20),
-        createTime: db.serverDate(),
-        updateTime: db.serverDate(),
-      });
-    }
-  }
-
+  console.log("章节解析结果:", chapterCollData);
   return chapterCollData;
 }
 
@@ -439,7 +350,7 @@ exports.main = async (event) => {
         return { code: 400, message: "不支持的文件类型", success: false };
     }
 
-    await validateAndSaveResult(chaptersResult);
+    // await validateAndSaveResult(chaptersResult);
     await db.collection("chapters").add({
       data: {
         bookId,

@@ -14,10 +14,10 @@
 <scroll-view scroll-y="true" enable-passive enhanced show-scrollbar="{{ true }}" scroll-top="{{ targetScrollTop }}"
   bind:scroll="onScroll" bind:tap="switchFooter" binddragging="ragging"
   style="background-color: {{ theme === 'light' ? '#333' : '#fff' }}; color: {{ theme === 'light' ? '#fff' : '#000' }}; height: {{ windowHeight ? windowHeight + 'px' : '100%' }}; font-size: {{ fontSize }}px; line-height: {{ lineHeight }};">
-  <block wx:for="{{contentChunks}}" wx:key="id">
+  <view wx:for="{{contentChunks}}" wx:key="id" id="{{item.id}}">
     <rich-text nodes="{{item.content}}">
     </rich-text>
-  </block>
+  </view>
 </scroll-view>
 
 <van-popup show="{{ showFooterBar }}" overlay="{{false}}" position="bottom" custom-style="height: 220px;">
@@ -27,7 +27,7 @@
         bind:click="adjustFontSize" custom-style="border: none" data-type="decrease" />
       <view style="flex-grow: 1; margin: 0 15px;">
         <van-slider use-slot step="2" min="{{ fontSizeMin }}" max="{{ fontSizeMax }}" value="{{ fontSize }}"
-          inactive-color="#e5e5e5" active-color="#e5e5e5" use-button-slot bind:drag="setFontSize">
+          inactive-color="#e5e5e5" active-color="#e5e5e5" use-button-slot bind:drag="adjustFontSize" data-type="set">
           <van-button slot="button" size="mini" plain round hairline>{{ fontSize }}
           </van-button>
         </van-slider>
@@ -74,11 +74,8 @@
   <view>
     <view style="height: 44px; line-height: 44px; margin-left: 10px;">目录</view>
     <van-cell border wx:for="{{ chapters }}" wx:key="index" clickable
-      title="第{{ item.seqId }}{{ item.type === 'chapter' ? '章' : '卷' }} {{ item.title }}"
-      value="{{ item.startPosition }}" bind:click="jumpToChapter" data-chapter="{{ item }}" />
-    <!-- <van-cell border wx:for="{{ chapters }}" wx:key="index" clickable
-      title="第{{ item.seqId }}{{ item.type === 'chapter' ? '章' : '卷' }} {{ item.title }}"
-      value="{{ item.startPosition }}" custom-class="chapter-item {{ currentChunkIndex === item.seqId ? 'active' : '' }}"
-      bind:click="jumpToChapter" data-chapter="{{ item }}" /> -->
+      title="第{{ item.seqId }}章 {{ item.title }}"
+       custom-class="chapter-item {{ currentChunkIndex === item.seqId - 1 ? 'active' : '' }}"
+      bind:click="jumpToChapter" data-chapterid="{{ item.seqId }}" class="chapter-id-{{item.seqId}}" />
   </view>
 </van-popup>

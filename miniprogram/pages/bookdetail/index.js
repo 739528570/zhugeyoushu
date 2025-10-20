@@ -3,13 +3,11 @@ import { booksPath } from "../../utils/index";
 Page({
   data: {
     // 内容相关
-    contentChunks: [], // 内容分片数组（每个分片约10KB）
+    contentChunks: [], // 内容分片数组
     currentChunkIndex: 0, // 当前显示的分片索引
-    totalChunks: 0, // 总分片数
     totalLength: 0, // 小说总字符数
-    chunkSize: 10000, // 每次加载的字符数（约10KB，可根据实际调整）
     isLoading: false, // 加载中状态
-    initLoading: true, // 加载中状态
+    initLoading: true, // 初始化配置加载中
 
     // 阅读相关
     targetScrollTop: 0, // 跳转滚动位置
@@ -62,21 +60,18 @@ Page({
       await this.getDetail();
       await this.getChapters();
 
-      // 3. 计算总分片数
-      this.calculateTotalChunks();
-
-      // 4. 根据保存的进度决定加载哪个分片
+      // 3. 根据保存的进度决定加载哪个分片
       let { chunkIndex, scrollTop } = this.readingProgress;
 
       // 确保加载的分片索引有效
-      if (chunkIndex >= this.data.totalChunks) {
+      if (chunkIndex >= this.data.chapters.length) {
         chunkIndex = 1;
       }
 
-      // 5. 加载初始分片（当前进度分片和下一个分片）
+      // 4. 加载初始分片（当前进度分片和下一个分片）
       await this.loadInitialChunks(chunkIndex);
 
-      // 6. 如果有保存的滚动位置，恢复滚动
+      // 5. 如果有保存的滚动位置，恢复滚动
       if (scrollTop > 0) {
         // 使用setTimeout确保DOM已更新
         setTimeout(() => {
@@ -100,11 +95,16 @@ Page({
   async getLocalConfig() {
     try {
       const readerConfig = await wx.getStorageSync("readerConfig");
-      console.log('getLocalConfig', readerConfig)
-      this.setData(Object.assign({
-        barHeight: wx.getWindowInfo().statusBarHeight + 46,
-        windowHeight: wx.getWindowInfo().windowHeight,
-      }, readerConfig));
+      console.log("getLocalConfig", readerConfig);
+      this.setData(
+        Object.assign(
+          {
+            barHeight: wx.getWindowInfo().statusBarHeight + 46,
+            windowHeight: wx.getWindowInfo().windowHeight,
+          },
+          readerConfig
+        )
+      );
     } catch (error) {
       console.error("GET STORAGE CONFIG ERROR:", error);
     }
@@ -139,27 +139,6 @@ Page({
       console.error("读取文件失败", error);
     }
   },
-  // 检查文件是否存在
-  checkFileExists() {
-    return new Promise((resolve, reject) => {
-      const fs = wx.getFileSystemManager();
-      fs.access({
-        path: this.filePath,
-        success: () => resolve(),
-        fail: () => reject(new Error("文件不存在")),
-      });
-    });
-  },
-
-  // 计算总分片数
-  calculateTotalChunks() {
-    const chunkSize = this.data.chunkSize; // 获取分片大小
-    const totalChunks = Math.ceil(this.data.totalLength / chunkSize);
-    this.setData({
-      totalChunks,
-    });
-  },
-
   // 修改loadInitialChunks方法，支持指定起始分片
   async loadInitialChunks(startChunkIndex) {
     this.data.isLoading = true;
@@ -174,7 +153,7 @@ Page({
         loadIndexes.add(startChunkIndex - 1);
       }
       // 添加后一个分片（如果存在）
-      if (startChunkIndex + 1 < this.data.totalChunks) {
+      if (startChunkIndex + 1 < this.data.chapters.length) {
         loadIndexes.add(startChunkIndex + 1);
       }
       if (startChunkIndex === 0) {
@@ -188,44 +167,37 @@ Page({
       const chunks = await Promise.all(
         indexes.map((index) => this.loadChunk(index))
       );
-      // 更新数据
-      this.setData({
-        contentChunks: this.chunksConpoments(chunks),
-        currentChunkIndex: startChunkIndex,
+
+      return new Promise((resolve) => {
+        this.setData(
+          {
+            contentChunks: this.chunkComponent(chunks),
+            currentChunkIndex: startChunkIndex,
+          },
+          () => {
+            this.data.isLoading = false;
+            resolve(); // setData完成后 resolve
+          }
+        );
       });
-      this.data.isLoading = false;
     } catch (err) {
       this.data.isLoading = false;
       throw err;
     }
   },
-
-  chunksConpoments(chunks, inx) {
-    return chunks.map((item, index) =>
-      inx === undefined || index === inx
-        ? {
-            ...item,
-            content: `<div style="width: 95%;margin: ${
-              inx !== undefined ? inx : index === 0 ? this.data.barHeight : 0
-            }px auto;">${item.content}</div>`,
-          }
-        : item
-    );
-  },
-
   // 加载指定分片
   loadChunk(chunkIndex) {
     return new Promise(async (resolve, reject) => {
-      const chunkSize = this.data.chunkSize;
-      const start = chunkIndex * chunkSize;
-      const end = start + chunkSize;
+      const chapters = this.data.chapters;
+      const start = chunkIndex === 0 ? 0 : chapters[chunkIndex].startPosition;
+      const end = chapters[chunkIndex + 1].startPosition;
 
       try {
         // 读取并解码指定范围的内容
         const content = await this.readContentChunk(start, end);
 
         resolve({
-          id: `chunk-${chunkIndex}`,
+          id: `chunk-${chunkIndex + 1}`,
           content,
           index: chunkIndex,
         });
@@ -244,7 +216,6 @@ Page({
       .replace(/\r\n/g, "\n") // 统一Windows换行符
       .replace(/\n/g, "<br>"); // 转换为HTML换行标签
   },
-
   // 读取指定范围的内容片段
   async readContentChunk(start, end) {
     try {
@@ -271,26 +242,26 @@ Page({
       return "";
     }
   },
-
   // 加载更多内容
-  async loadNext() {
-    if (this.data.isLoading) {
-      return;
-    }
-
-    this.data.isLoading = true;
+  async loadMore(isPrev) {
     try {
       const currentIndex = this.data.currentChunkIndex;
-      const nextIndex = currentIndex + 1;
+      if (currentIndex <= 0 || this.data.isLoading) {
+        return;
+      }
+      this.data.isLoading = true;
+      const nextIndex = isPrev ? currentIndex - 1 : currentIndex + 1;
 
       const nextChunk = await this.loadChunk(nextIndex);
 
       // 更新分片数组
-      const newChunks = [...this.data.contentChunks, nextChunk].slice(1);
+      const newChunks = isPrev
+        ? [nextChunk, ...this.data.contentChunks].slice(0, 3)
+        : [...this.data.contentChunks, nextChunk].slice(1);
 
       // 更新数据
       this.setData({
-        contentChunks: this.chunksConpoments(newChunks, 2),
+        contentChunks: this.chunkComponent(newChunks, isPrev ? 0 : 2),
       });
       this.data.isLoading = false;
     } catch (err) {
@@ -298,34 +269,21 @@ Page({
       this.data.isLoading = false;
     }
   },
-
-  // 添加加载上一个分片的方法
-  async loadPrev() {
-    const currentIndex = this.data.currentChunkIndex;
-    if (currentIndex <= 0 || this.data.isLoading) {
-      return;
-    }
-
-    this.data.isLoading = true;
-    try {
-      const prevIndex = currentIndex - 1;
-
-      const prevChunk = await this.loadChunk(prevIndex);
-
-      // 更新分片数组
-      const newChunks = [prevChunk, ...this.data.contentChunks].slice(0, 3);
-
-      // 更新数据
-      this.setData({
-        contentChunks: this.chunksConpoments(newChunks, 0),
-      });
-      this.data.isLoading = false;
-    } catch (err) {
-      console.error("加载上一页失败:", err);
-      this.data.isLoading = false;
-    }
+  // 跳转到指定章节
+  async jumpToChapter(e) {
+    this.setData({
+      showHeaderBar: false,
+      showFooterBar: false,
+      showChapters: false,
+    });
+    const chapterId = e.currentTarget.dataset.chapterid;
+    console.log("jumpToChapter", chapterId);
+    await this.loadInitialChunks(chapterId - 1);
+    wx.pageScrollTo({
+      selector: `#chunk-${chapterId}`,
+      duration: 0,
+    });
   },
-
   // 滚动事件处理
   onScroll(e) {
     const { scrollTop, scrollHeight } = e.detail;
@@ -350,7 +308,7 @@ Page({
       if (this.data.currentChunkIndex != this.data.contentChunks[2].index) {
         this.data.currentChunkIndex = this.data.contentChunks[2].index;
       }
-      this.loadNext(scrollHeight);
+      this.loadMore();
       this.lastLoadTime = now;
     }
 
@@ -360,7 +318,7 @@ Page({
         this.data.currentChunkIndex = this.data.contentChunks[0].index;
       }
       this.lastLoadTime = now;
-      this.loadPrev(scrollHeight);
+      this.loadMore(true);
     }
 
     if (
@@ -372,76 +330,12 @@ Page({
     }
   },
 
-  ragging() {
-    if (this.data.showFooterBar && this.data.showHeaderBar) {
-      this.setData({ showFooterBar: false, showHeaderBar: false });
-    } else if (this.data.showFooterBar) {
-      this.setData({ showFooterBar: false });
-    } else if (this.data.showHeaderBar) {
-      this.setData({ showHeaderBar: false });
-    }
-  },
-
-  // 调整字体大小
-  adjustFontSize(e) {
-    const { type } = e.currentTarget.dataset;
-    let { fontSize } = this.data;
-
-    if (type === "increase" && fontSize < this.data.fontSizeMax) {
-      fontSize += 2;
-    } else if (type === "decrease" && fontSize > this.data.fontSizeMin) {
-      fontSize -= 2;
-    }
-    this.setLocalConfig({ fontSize });
-    this.setData({
-      fontSize,
-    });
-  },
-  setFontSize(event) {
-
-    const fontSize = event.detail.value;
-    this.setData({
-      fontSize,
-    });
-    this.setLocalConfig({ fontSize });
-  },
-
-  // 切换主题
-  toggleTheme() {
-    const theme = this.data.theme === "light" ? "dark" : "light";
-    this.setData({
-      theme,
-    });
-    this.setLocalConfig({ theme });
-  },
-
-  // 调整字体大小
-  adjustLineHeight(e) {
-    const { type } = e.currentTarget.dataset;
-    let { lineHeight } = this.data;
-
-    if (type === "increase" && lineHeight < this.data.lineHeightMax) {
-      lineHeight += 0.1;
-    } else if (type === "decrease" && lineHeight > this.data.lineHeightMin) {
-      lineHeight -= 0.1;
-    }
-    lineHeight = parseFloat(lineHeight.toFixed(1));
-    this.setLocalConfig({ lineHeight });
-    // 字体大小改变时，重新计算分片大小并刷新当前内容
-    this.setData({
-      lineHeight,
-    });
-  },
-
-  // 页面卸载时保存阅读进度
-  onUnload() {
-    this.saveReadingProgress();
-  },
-
   // 新增：读取保存的阅读进度
   async loadReadingProgress() {
     try {
-      const progressData = await wx.getStorageSync(`readingProgress_${this.bookId}`);
+      const progressData = await wx.getStorageSync(
+        `readingProgress_${this.bookId}`
+      );
       if (progressData) {
         this.readingProgress = {
           chunkIndex: progressData.chunkIndex || 0,
@@ -485,6 +379,86 @@ Page({
     }
   },
 
+  ragging() {
+    if (this.data.showFooterBar && this.data.showHeaderBar) {
+      this.setData({ showFooterBar: false, showHeaderBar: false });
+    } else if (this.data.showFooterBar) {
+      this.setData({ showFooterBar: false });
+    } else if (this.data.showHeaderBar) {
+      this.setData({ showHeaderBar: false });
+    }
+  },
+
+  // 切换主题
+  toggleTheme() {
+    const theme = this.data.theme === "light" ? "dark" : "light";
+    this.setData({
+      theme,
+    });
+    this.setLocalConfig({ theme });
+  },
+  // 调整字体大小
+  adjustFontSize(e) {
+    const { type } = e.currentTarget.dataset;
+    let fontSize = type === "set" ? e.detail.value : this.data.fontSize;
+
+    if (type === "increase" && fontSize < this.data.fontSizeMax) {
+      fontSize += 2;
+    } else if (type === "decrease" && fontSize > this.data.fontSizeMin) {
+      fontSize -= 2;
+    } else if (type === "set") {
+    }
+    this.setLocalConfig({ fontSize });
+    this.setData({
+      fontSize,
+    });
+  },
+  // 调整字体大小
+  adjustLineHeight(e) {
+    const { type } = e.currentTarget.dataset;
+    let { lineHeight } = this.data;
+
+    if (type === "increase" && lineHeight < this.data.lineHeightMax) {
+      lineHeight += 0.1;
+    } else if (type === "decrease" && lineHeight > this.data.lineHeightMin) {
+      lineHeight -= 0.1;
+    }
+    lineHeight = parseFloat(lineHeight.toFixed(1));
+    this.setLocalConfig({ lineHeight });
+    // 字体大小改变时，重新计算分片大小并刷新当前内容
+    this.setData({
+      lineHeight,
+    });
+  },
+  // 检查文件是否存在
+  checkFileExists() {
+    return new Promise((resolve, reject) => {
+      const fs = wx.getFileSystemManager();
+      fs.access({
+        path: this.filePath,
+        success: () => resolve(),
+        fail: () => reject(new Error("文件不存在")),
+      });
+    });
+  },
+  chunkComponent(chunks, inx) {
+    return chunks.map((item, index) =>
+      inx === undefined || index === inx
+        ? {
+            ...item,
+            content: `<div style="width: 95%;margin: ${
+              inx !== undefined ? inx : index === 0 ? this.data.barHeight : 0
+            }px auto;">${item.content}</div>`,
+          }
+        : item
+    );
+  },
+
+  // 页面卸载时保存阅读进度
+  onUnload() {
+    this.saveReadingProgress();
+  },
+
   switchFooter(e) {
     if (e.detail.y / this.data.windowHeight < 0.5) {
       this.setData({
@@ -497,9 +471,17 @@ Page({
     }
   },
   switchChapters() {
+    const showChapters = !this.data.showChapters;
     this.setData({
-      showChapters: !this.data.showChapters,
+      showChapters,
     });
+    if (showChapters) {
+      console.log("jump Chapters", this.data.currentChunkIndex + 1);
+      wx.pageScrollTo({
+        selector: `.chapter-id-${this.data.currentChunkIndex + 1}`,
+        duration: 0,
+      });
+    }
   },
 
   backHome() {
