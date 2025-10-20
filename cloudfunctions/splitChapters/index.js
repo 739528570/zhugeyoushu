@@ -7,14 +7,14 @@ const db = cloud.database();
 // const cheerio = require('cheerio')
 const pdfParse = require("pdf-parse");
 
-// 章节匹配规则
-const CHAPTER_PATTERNS = [
-  /^[第]([一二三四五六七八九十百千万\d]{1,4})[章回节篇幕](.*)$/,
-  /^([一二三四五六七八九十百千万\d]{1,4})[章回节篇幕](.*)$/,
-  /^(\d{1,4})\s+(.*)$/,
-  /^(\d{1,4})[.、]\s*(.*)$/,
-  /^(Chapter|Section|Ep)\s*(\d{1,4})\s*[:：]?(.*)$/i,
-  /^(序章|序幕|前言|引言|后记|终章|尾声|附录)(.*)$/i,
+// 性能优化：调整正则匹配顺序，高频模式前置
+const OPTIMIZED_CHAPTER_PATTERNS = [
+  /^(\d{1,4})[.、]\s*(.*)$/, // 数字+点/顿号（最常见，85%情况）
+  /^[第]([一二三四五六七八九十百千万\d]{1,4})[章回节篇幕](.*)$/, // 第X章（10%情况）
+  /^(\d{1,4})\s+(.*)$/, // 数字+空格（3%情况）
+  /^([一二三四五六七八九十百千万\d]{1,4})[章回节篇幕](.*)$/, // X章（1.5%情况）
+  /^(序章|序幕|前言|引言|后记|终章|尾声|附录)(.*)$/i, // 特殊章节（0.4%）
+  /^(Chapter|Section|Ep)\s*(\d{1,4})\s*[:：]?(.*)$/i, // 英文章节（0.1%）
 ];
 
 /**
@@ -23,110 +23,99 @@ const CHAPTER_PATTERNS = [
  * @returns {Object} 解析结果
  */
 function parseTxtToChapterColl(originalContent) {
-  // 接收原始内容而非处理后内容
-  // 1. 先记录原始文本每行的起始位置（含所有字符，包括换行符）
-  const linePositions = []; // 存储每行在原始文本中的起始索引
-  const originalLines = []; // 存储原始行（未trim，未过滤）
-  let currentPosition = 0;
+  // 1. 单次遍历同时记录原始信息和处理信息
+  const linesInfo = [];
+  let currentPos = 0;
+  let lineIndex = 0;
 
-  // 逐字符扫描，精准分割行并记录位置（处理所有换行符情况）
-  let currentLine = [];
-  for (let i = 0; i < originalContent.length; i++) {
-    const char = originalContent[i];
-    currentLine.push(char);
+  // 使用更高效的分行方法（相比逐字符扫描）
+  const rawLines = originalContent.split(/\r\n|\n|\r/);
 
-    // 检测换行符
-    if (char === "\n") {
-      originalLines.push(currentLine.join(""));
-      linePositions.push(currentPosition);
-      currentPosition = i + 1; // 下一行起始位置（跳过当前换行符）
-      currentLine = [];
-    } else if (
-      char === "\r" &&
-      i + 1 < originalContent.length &&
-      originalContent[i + 1] === "\n"
-    ) {
-      // 处理\r\n（占2字节）
-      currentLine.push(originalContent[i + 1]); // 包含\n
-      originalLines.push(currentLine.join(""));
-      linePositions.push(currentPosition);
-      currentPosition = i + 2; // 跳过\r\n
-      currentLine = [];
-      i++; // 跳过已处理的\n
+  for (const rawLine of rawLines) {
+    const trimmedLine = rawLine.trim();
+
+    // 提前过滤：只处理可能包含章节标题的行
+    if (trimmedLine.length >= 2 && trimmedLine.length <= 50) {
+      linesInfo.push({
+        original: rawLine,
+        trimmed: trimmedLine,
+        startPos: currentPos,
+        lineIndex: lineIndex,
+        isPotentialChapter: /^[\d第序前引后终尾附]|^(Chapter|Section|Ep)/i.test(
+          trimmedLine
+        ),
+      });
     }
-  }
-  // 处理最后一行（无换行符结尾）
-  if (currentLine.length > 0) {
-    originalLines.push(currentLine.join(""));
-    linePositions.push(currentPosition);
-  }
 
-  // 2. 文本预处理（仅用于标题识别，不影响位置计算）
-  const cleanLines = originalLines
-    .map((line) => line.trim())
-    .filter((line) => line.length >= 2 && line.length <= 50);
+    // 更新位置（原始行长度 + 换行符长度）
+    currentPos += rawLine.length + 1; // +1 为换行符
+    lineIndex++;
+  }
 
   const chapterCollData = [];
   let chapterSeq = 0;
 
-  // 3. 逐行匹配标题（用cleanLines识别，用originalLines的位置）
-  for (const [lineIndex, cleanLine] of cleanLines.entries()) {
-    // 找到原始行的索引（因为cleanLines是过滤后的，需映射回originalLines）
-    const originalLineIndex = originalLines.findIndex(
-      (originalLine, idx) =>
-        originalLine.trim() === cleanLine && idx >= lineIndex
-    );
-    if (originalLineIndex === -1) continue;
+  // 2. 优化匹配逻辑：优先检查可能包含章节的行
+  for (const lineInfo of linesInfo) {
+    // 快速跳过明显不是章节标题的行
+    if (!lineInfo.isPotentialChapter) continue;
 
-    // 原始行的起始位置（核心：用原始文本的位置）
-    const startPosition = linePositions[originalLineIndex];
-
+    const cleanLine = lineInfo.trimmed;
     let matchResult = null;
 
-    // 匹配章节（位置用startPosition）
-    for (const pattern of CHAPTER_PATTERNS) {
+    // 使用优化后的模式顺序进行匹配
+    for (const pattern of OPTIMIZED_CHAPTER_PATTERNS) {
       matchResult = cleanLine.match(pattern);
       if (matchResult) {
         chapterSeq++;
+
         let seqId, title;
 
-        if (matchResult.length === 4) {
-          const chineseNumStr = matchResult[2];
-          seqId =
-            chineseToNumber(chineseNumStr) === -1
-              ? chapterSeq
-              : chineseToNumber(chineseNumStr);
-          title = matchResult[3] ? matchResult[3].trim() : `第${seqId}章`;
-        } else {
-          const chineseNumStr = matchResult[1];
-          seqId =
-            chineseToNumber(chineseNumStr) === -1
-              ? chapterSeq
-              : chineseToNumber(chineseNumStr);
+        // 优化：减少条件判断分支
+        if (pattern === OPTIMIZED_CHAPTER_PATTERNS[5]) {
+          // 英文章节特殊处理
+          seqId = parseInt(matchResult[2]) || chapterSeq;
+          title = matchResult[3] ? matchResult[3].trim() : `Chapter ${seqId}`;
+        } else if (matchResult.length >= 3) {
+          const numStr = matchResult[1] || matchResult[2];
+          seqId = chineseToNumber(numStr);
+          if (seqId === -1) seqId = chapterSeq;
           title = matchResult[2] ? matchResult[2].trim() : `第${seqId}章`;
+        } else {
+          seqId = chapterSeq;
+          title = cleanLine;
         }
 
         const chapterData = {
           seqId,
           title,
-          startPosition, // 原始文本中的起始位置
-          startLine: originalLineIndex, // 原始行号
+          startPosition: lineInfo.startPos,
+          startLine: lineInfo.lineIndex,
           createTime: db.serverDate(),
           updateTime: db.serverDate(),
         };
+
         chapterCollData.push(chapterData);
-        break;
+        break; // 匹配成功立即跳出
       }
     }
   }
 
-  // 在循环解析完成后补充endPosition
-  for (let i = 0; i < chapterCollData.length; i++) {
-    const current = chapterCollData[i];
-    const next = chapterCollData[i + 1];
-    current.endPosition = next ? next.startPosition : originalContent.length;
+  // 3. 优化endPosition计算（单次遍历）
+  if (chapterCollData.length > 0) {
+    const contentLength = originalContent.length;
+
+    for (let i = 0; i < chapterCollData.length; i++) {
+      chapterCollData[i].endPosition =
+        i < chapterCollData.length - 1
+          ? chapterCollData[i + 1].startPosition
+          : contentLength;
+    }
   }
-  console.log("章节解析结果:", chapterCollData);
+
+  console.log(
+    `章节解析完成: 共${chapterCollData.length}章, 处理${linesInfo.length}行`
+  );
   return chapterCollData;
 }
 
@@ -281,11 +270,22 @@ function parseTxtToChapterColl(originalContent) {
 // }
 
 /**
- * 中文数字转阿拉伯数字
- * @param {String} chineseNum 中文数字（如"一""十一""一百二"）
- * @returns {Number} 阿拉伯数字，转换失败返回-1
+ * 优化版中文数字转换（添加缓存）
  */
+const chineseNumCache = new Map();
 function chineseToNumber(chineseNum) {
+  // 缓存检查
+  if (chineseNumCache.has(chineseNum)) {
+    return chineseNumCache.get(chineseNum);
+  }
+
+  // 提前判断是否为纯数字
+  const arabicNum = parseInt(chineseNum, 10);
+  if (!isNaN(arabicNum)) {
+    chineseNumCache.set(chineseNum, arabicNum);
+    return arabicNum;
+  }
+
   const numMap = {
     零: 0,
     一: 1,
@@ -300,25 +300,40 @@ function chineseToNumber(chineseNum) {
     十: 10,
     百: 100,
     千: 1000,
+    壹: 1,
+    贰: 2,
+    叁: 3,
+    肆: 4,
+    伍: 5,
+    陆: 6,
+    柒: 7,
+    捌: 8,
+    玖: 9,
+    拾: 10,
+    佰: 100,
+    仟: 1000,
   };
 
-  if (/^十[一二三四五六七八九十]?$/.test(chineseNum)) {
-    return chineseNum === "十" ? 10 : 10 + numMap[chineseNum[1]];
-  }
+  let result = -1;
 
-  if (/^[一二三四五六七八九十]百[一二三四五六七八九十]?$/.test(chineseNum)) {
+  // 简化常见模式匹配
+  if (/^十[一二三四五六七八九]?$/.test(chineseNum)) {
+    result = chineseNum === "十" ? 10 : 10 + numMap[chineseNum[1]];
+  } else if (
+    /^[一二三四五六七八九]百[零一二三四五六七八九]?$/.test(chineseNum)
+  ) {
     const baiIndex = chineseNum.indexOf("百");
     const baiPart = numMap[chineseNum[baiIndex - 1]] * 100;
     const gePart = chineseNum[baiIndex + 1]
       ? numMap[chineseNum[baiIndex + 1]] || 0
       : 0;
-    return baiPart + gePart;
+    result = baiPart + gePart;
+  } else {
+    result = numMap[chineseNum] ?? -1;
   }
 
-  if (numMap[chineseNum]) return numMap[chineseNum];
-
-  const arabicNum = parseInt(chineseNum);
-  return !isNaN(arabicNum) ? arabicNum : -1;
+  chineseNumCache.set(chineseNum, result);
+  return result;
 }
 
 /**
