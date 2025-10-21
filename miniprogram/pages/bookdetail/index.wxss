@@ -1,6 +1,6 @@
 /* pages/bookdetail/index.wxss */
 .list-loading {
-  display: flex !important;
+  flex-direction: row; display: flex !important;
 }
 .book-content {
   /* width: 95%; 

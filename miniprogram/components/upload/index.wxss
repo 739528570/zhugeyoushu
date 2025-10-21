@@ -3,6 +3,6 @@
 }
 
 .upload-loading {
-  display: flex !important;
+  flex-direction: row; display: flex !important;
   margin-top: 60%;
 }

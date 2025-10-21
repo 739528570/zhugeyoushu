@@ -10,5 +10,17 @@
     "navigationStyle": "custom"
   },
   "sitemapLocation": "sitemap.json",
-  "lazyCodeLoading": "requiredComponents"
+  "lazyCodeLoading": "requiredComponents",
+  "componentFramework": "glass-easel",
+  "renderer": "skyline",
+  "rendererOptions": {
+    "skyline": {
+      "sdkVersionBegin": "3.0.0",
+      "sdkVersionEnd": "latest",
+      "disableABTest": true,
+      "defaultDisplayBlock": true,
+      "defaultContentBox": true,
+      "enableScrollViewAutoSize": true
+    }
+  }
 }

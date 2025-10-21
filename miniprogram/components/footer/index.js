@@ -1,5 +1,8 @@
 // components/footer/index.js
 Component({
+  options: {
+    styleIsolation: 'shared',
+  },
   /**
    * 组件的属性列表
    */
@@ -23,5 +26,20 @@ Component({
   /**
    * 组件的方法列表
    */
-  methods: {},
+  methods: {
+    handleTap: (e) => {
+      const active = e.currentTarget.dataset.active;
+      console.log(active)
+
+      wx.navigateTo({
+        url: `/pages/${active}/index`,
+        success: () => {
+          console.log('success')
+        },
+        fail: (err) => {
+          console.log('err', err)
+        }
+      });
+    }
+  },
 });

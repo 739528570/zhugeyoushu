@@ -1,5 +1,7 @@
 {
   "navigationBarTitleText": "书架",
+  "disableScroll": true,
+  "navigationStyle": "custom",
   "usingComponents": {
     "footer": "/components/footer/index",
     "upload": "/components/upload/index",

@@ -1,13 +1,21 @@
-<!--components/footer/index.wxml-->
-<view>
-  <van-tabbar active="{{ active }}">
-    <van-tabbar-item name="index" url="/pages/index/index">
-      <image slot="icon" src="{{ icon.bookshelf }}" mode="aspectFit" style="width: 30px; height: 18px;" />
-      <image slot="icon-active" src="{{ icon.bookshelfactive }}" mode="aspectFit" style="width: 30px; height: 18px;" />
-    </van-tabbar-item>
-    <van-tabbar-item name="bookmark" url="/pages/bookmark/index">
-      <image slot="icon" src="{{ icon.bookmark }}" mode="aspectFit" style="width: 30px; height: 18px;" />
-      <image slot="icon-active" src="{{ icon.bookmarkactive }}" mode="aspectFit" style="width: 30px; height: 18px;" />
-    </van-tabbar-item>
-  </van-tabbar>
-</view>
+<!-- components/footer/index.wxml -->
+<van-tabbar active="{{ active }}" placeholder>
+  <view style="display: flex; justify-content: space-around; align-items: center; width: 100%;">
+    <view bind:tap="handleTap" data-active="index" style="display: flex; justify-content: center;">
+      <image wx:if="{{ active !== 'index' }}" src="{{ icon.bookshelf }}" mode="aspectFit" style="width: 30px; height: 18px;" />
+      <image wx:if="{{ active === 'index' }}" src="{{ icon.bookshelfactive }}" mode="aspectFit" style="width: 30px; height: 18px;" />
+    </view>
+    <view bind:tap="handleTap" data-active="bookmark" style="display: flex; justify-content: center;">
+      <image wx:if="{{ active !== 'bookmark' }}" src="{{ icon.bookmark }}" mode="aspectFit" style="width: 30px; height: 18px;" />
+      <image wx:if="{{ active === 'bookmark' }}" src="{{ icon.bookmarkactive }}" mode="aspectFit" style="width: 30px; height: 18px;" />
+    </view>
+  </view>
+  <!-- <van-tabbar-item name="index" url="/pages/index/index" custom-style="width: 100px">
+    <image slot="icon" src="{{ icon.bookshelf }}" mode="aspectFit" style="width: 30px; height: 18px;" />
+    <image slot="icon-active" src="{{ icon.bookshelfactive }}" mode="aspectFit" style="width: 30px; height: 18px;" />
+  </van-tabbar-item>
+  <van-tabbar-item name="bookmark" url="/pages/bookmark/index" custom-style="width: 100px">
+    <image slot="icon" src="{{ icon.bookmark }}" mode="aspectFit" style="width: 30px; height: 18px;" />
+    <image slot="icon-active" src="{{ icon.bookmarkactive }}" mode="aspectFit" style="width: 30px; height: 18px;" />
+  </van-tabbar-item> -->
+</van-tabbar>

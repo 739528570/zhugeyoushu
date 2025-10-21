@@ -1,6 +1,6 @@
 /**index.wxss**/
 .list-loading {
-  display: flex !important;
+  flex-direction: row; display: flex !important;
   justify-content: center;
   margin-top: 30px;
 }
@@ -15,7 +15,7 @@
   border: none !important;
 }
 .book-item-delete {
-  display: flex;
+  flex-direction: row; display: flex;
   height: 100%;
   width: 65px;
   align-items: center;
@@ -24,6 +24,6 @@
   color: white;
 }
 .download-loading {
-  display: flex !important;
+  flex-direction: row; display: flex !important;
   margin-top: 60%;
 }
