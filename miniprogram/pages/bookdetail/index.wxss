@@ -1,26 +1,162 @@
 /* pages/bookdetail/index.wxss */
-.list-loading {
-  flex-direction: row; display: flex !important;
+.reader-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f5f0e6;
+  /* 羊皮纸色背景 */
 }
-.book-content {
-  /* width: 95%; 
-  margin: 0 auto;  */
+
+.reader-navbar {
+  flex-shrink: 0;
 }
-.book-content:first-child {
-  /* padding-top: 108px;  */
+
+.reader-content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 0;
 }
-/* .catalog-btn {
+
+.page-container {
+  flex: 1;
+  position: relative;
+  transition: transform 0.3s ease;
+}
+
+.page-container.animating {
+  transition: transform 0.3s ease;
+}
+
+.page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 20px;
+  background: #fefcf5;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  margin: 10px;
+  overflow: hidden;
+}
+
+.page-text {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #333;
+  text-align: justify;
+  word-break: break-all;
+}
+
+.next-page {
+  transform: translateX(100%);
+}
+
+.progress-indicator {
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border-top: 1px solid #eee;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.progress-bar {
+  height: 3px;
+  background: #e0e0e0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-inner {
+  height: 100%;
+  background: #07c160;
+  transition: width 0.3s ease;
+}
+
+.settings-panel {
   position: fixed;
-  top: 10px;
-  right: 10px;
-  z-index: 100;
-} */
-
-.chapter-item {
-  padding: 12px 16px;
+  bottom: -300px;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  transition: bottom 0.3s ease;
+  z-index: 1000;
 }
 
-.chapter-item.active {
-  background-color: #f5f5f5;
-  color: #1989fa; /* 高亮颜色，与主题一致 */
+.settings-panel.show {
+  bottom: 0;
+}
+
+.settings-header {
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+}
+
+.settings-content {
+  padding: 15px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.setting-item text:first-child {
+  width: 80px;
+  font-size: 14px;
+}
+
+.setting-item slider {
+  flex: 1;
+  margin: 0 15px;
+}
+
+.setting-item .value {
+  width: 50px;
+  text-align: right;
+  font-size: 12px;
+  color: #666;
+}
+
+.picker {
+  padding: 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.action-bar {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 20px;
+  padding: 10px;
+}
+
+.action-bar .van-icon {
+  color: white;
+  font-size: 20px;
+  margin: 8px 0;
 }

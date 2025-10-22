@@ -1,57 +1,75 @@
 <!--pages/bookdetail/index.wxml-->
 
-<!-- <van-popup show="{{ showHeaderBar }}" overlay="{{false}}" position="top" custom-style="height: {{ barHeight }}px;">
-</van-popup> -->
-<van-nav-bar wx:if="{{ showHeaderBar }}" fixed left-text="返回" title="{{ title }}" bind:click-left="backHome" />
+<view class="reader-container">
+  <!-- 顶部导航栏 -->
+  <van-nav-bar title="{{book.title}}" left-text="返回" left-arrow bind:click-left="onBack" custom-class="reader-navbar" />
 
-<van-overlay show="{{ initLoading }}" custom-style="height: 100%; background-color: {{ theme === 'light' ? '#333' : '#fff' }};">
-  <view style="height: 100%; display: flex; align-items: center; justify-content: center;">
-    <van-loading type="spinner" size="30px" vertical>加载中...
-    </van-loading>
-  </view>
-</van-overlay>
-<scroll-view scroll-y="true" type="list" enable-passive enhanced scroll-top="{{ targetScrollTop }}" bind:scroll="onScroll" bind:tap="switchFooter" binddragging="ragging" worklet:ongesture="ongesture" style="background-color: {{ theme === 'light' ? '#333' : '#fff' }}; color: {{ theme === 'light' ? '#fff' : '#000' }}; height: {{ windowHeight ? windowHeight + 'px' : '100%' }}; font-size: {{ fontSize }}px; line-height: {{ lineHeight }};">
-  <view wx:for="{{contentChunks}}" wx:key="id" id="{{item.id}}">
-    <long-press-gesture-handler>
-      <rich-text nodes="{{item.content}}" user-select="{{ true }}">
-      </rich-text>
-    </long-press-gesture-handler>
-  </view>
-</scroll-view>
+  <!-- 阅读区域 -->
+  <view class="reader-content" id="readerContent">
+    <!-- 翻页动画容器 -->
+    <view class="page-container {{isAnimating ? 'animating' : ''}}">
+      <!-- 当前页 -->
+      <view class="page current-page" style="{{pageStyle}}">
+        <text class="page-text" selectable user-select>{{currentPageText}}</text>
+      </view>
 
-<van-popup show="{{ showFooterBar }}" overlay="{{false}}" position="bottom" custom-style="height: 220px;">
-  <view style="padding: 15px">
-    <view style="display: flex; justify-content: space-between; align-items: center;">
-      <van-button icon="/statics/images/letter2.png" disabled="{{ fontSize <= fontSizeMin }}" bind:click="adjustFontSize" custom-style="border: none" data-type="decrease" />
-      <view style="flex-grow: 1; margin: 0 15px;">
-        <van-slider use-slot step="2" min="{{ fontSizeMin }}" max="{{ fontSizeMax }}" value="{{ fontSize }}" inactive-color="#e5e5e5" active-color="#e5e5e5" use-button-slot bind:drag="adjustFontSize" data-type="set">
-          <van-button slot="button" size="mini" plain round hairline>{{ fontSize }}
-          </van-button>
-        </van-slider>
-      </view>
-      <van-button icon="/statics/images/letter1.png" disabled="{{ fontSize >= fontSizeMax }}" bind:click="adjustFontSize" custom-style="border: none" data-type="increase" />
-    </view>
-    <view style="display: flex; margin-top: 15px;">
-      <view style="display: flex;">
-        <van-icon name="/statics/images/line.png" style="padding: 0 15px;" />
-        <van-button round block icon="minus" size="mini" custom-style="height: 44px; min-width: 44px;" disabled="{{ lineHeight <= lineHeightMin }}" bind:click="adjustLineHeight" data-type="decrease" />
-        <view style="padding: 0 15px; line-height: 44px;">{{lineHeight}}</view>
-        <van-button round block icon="plus" size="mini" custom-style="height: 44px; min-width: 44px;" disabled="{{ lineHeight >= lineHeightMax }}" bind:click="adjustLineHeight" data-type="increase" />
-      </view>
-      <view style="display: flex; justify-content: center; align-items: center; margin-left: 20px; width: 200px;">
-        <van-button round icon="/statics/images/{{ theme === 'light' ? 'light' : 'dark' }}.png" custom-style=" width: 100px;" bind:click="toggleTheme" />
+      <!-- 下一页（预加载） -->
+      <view class="page next-page" style="{{pageStyle}}" wx:if="{{nextPageText}}">
+        <text class="page-text" selectable user-select>{{nextPageText}}</text>
       </view>
     </view>
-    <view style="display: flex; margin-top: 15px; justify-content: space-around;">
-      <van-button round custom-style="width: 150px;" bind:click="switchChapters">目录</van-button>
-      <van-button round custom-style="width: 150px;" bind:click="switchChapters">加入书签</van-button>
+
+    <!-- 进度指示器 -->
+    <view class="progress-indicator">
+      <text class="progress-text">{{currentPage}}/{{totalPages}}</text>
+      <view class="progress-bar">
+        <view class="progress-inner" style="width: {{(currentPage/totalPages)*100}}%"></view>
+      </view>
     </view>
   </view>
-</van-popup>
 
-<van-popup show="{{ showChapters }}" bind:close="switchChapters" safe-area-inset-top position="bottom" custom-style="height: 85%;" close-on-click-overlay closeable>
-  <view>
-    <view style="height: 44px; line-height: 44px; margin-left: 10px;">目录</view>
-    <van-cell border wx:for="{{ chapters }}" wx:key="index" clickable title="第{{ item.seqId }}章 {{ item.title }}" custom-class="chapter-item {{ currentChunkIndex === item.seqId - 1 ? 'active' : '' }}" bind:click="jumpToChapter" data-chapterid="{{ item.seqId }}" class="chapter-id-{{item.seqId}}" />
+  <!-- 设置面板 -->
+  <view class="settings-panel {{showSettings ? 'show' : ''}}">
+    <view class="settings-header">
+      <text>阅读设置</text>
+      <van-icon name="cross" bind:tap="toggleSettings" />
+    </view>
+
+    <view class="settings-content">
+      <view class="setting-item">
+        <text>字体大小</text>
+        <slider value="{{fontSize}}" min="14" max="30" step="1" bind:change="onFontSizeChange" />
+        <text class="value">{{fontSize}}px</text>
+      </view>
+
+      <view class="setting-item">
+        <text>行间距</text>
+        <slider value="{{lineHeight}}" min="1.2" max="2.5" step="0.1" bind:change="onLineHeightChange" />
+        <text class="value">{{lineHeight}}倍</text>
+      </view>
+
+      <view class="setting-item">
+        <text>页边距</text>
+        <slider value="{{pagePadding}}" min="10" max="40" step="2" bind:change="onPaddingChange" />
+        <text class="value">{{pagePadding}}px</text>
+      </view>
+
+      <view class="setting-item">
+        <text>字体</text>
+        <picker range="{{fontFamilies}}" value="{{fontIndex}}" bind:change="onFontChange">
+          <view class="picker">{{fontFamilies[fontIndex]}}</view>
+        </picker>
+      </view>
+    </view>
   </view>
-</van-popup>
+
+  <!-- 操作栏 -->
+  <view class="action-bar">
+    <van-icon name="setting-o" bind:tap="toggleSettings" />
+    <van-icon name="bookmark-o" bind:tap="addBookmark" />
+    <van-icon name="bars" bind:tap="showChapterList" />
+  </view>
+
+  <!-- 隐藏的Canvas用于测量 -->
+  <canvas id="measureCanvas" type="2d" style="position: absolute; left: -9999px; width: {{canvasWidth}}px; height: {{canvasHeight}}px;"></canvas>
+</view>
