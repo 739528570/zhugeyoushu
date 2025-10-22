@@ -1,19 +1,16 @@
 <!--pages/bookdetail/index.wxml-->
 
-<van-popup show="{{ showHeaderBar }}" overlay="{{false}}" position="top" custom-style="height: {{ barHeight }}px;">
-  <van-nav-bar fixed left-arrow title="{{ title }}" bind:click-left="backHome" />
-</van-popup>
+<!-- <van-popup show="{{ showHeaderBar }}" overlay="{{false}}" position="top" custom-style="height: {{ barHeight }}px;">
+</van-popup> -->
+<van-nav-bar wx:if="{{ showHeaderBar }}" fixed left-text="返回" title="{{ title }}" bind:click-left="backHome" />
 
-<van-overlay show="{{ initLoading }}"
-  custom-style="height: 100%; background-color: {{ theme === 'light' ? '#333' : '#fff' }};">
+<van-overlay show="{{ initLoading }}" custom-style="height: 100%; background-color: {{ theme === 'light' ? '#333' : '#fff' }};">
   <view style="height: 100%; display: flex; align-items: center; justify-content: center;">
     <van-loading type="spinner" size="30px" vertical>加载中...
     </van-loading>
   </view>
 </van-overlay>
-<scroll-view scroll-y="true" type="list" enable-passive enhanced scroll-top="{{ targetScrollTop }}"
-  bind:scroll="onScroll" bind:tap="switchFooter" binddragging="ragging"  worklet:ongesture="ongesture"
-  style="background-color: {{ theme === 'light' ? '#333' : '#fff' }}; color: {{ theme === 'light' ? '#fff' : '#000' }}; height: {{ windowHeight ? windowHeight + 'px' : '100%' }}; font-size: {{ fontSize }}px; line-height: {{ lineHeight }};">
+<scroll-view scroll-y="true" type="list" enable-passive enhanced scroll-top="{{ targetScrollTop }}" bind:scroll="onScroll" bind:tap="switchFooter" binddragging="ragging" worklet:ongesture="ongesture" style="background-color: {{ theme === 'light' ? '#333' : '#fff' }}; color: {{ theme === 'light' ? '#fff' : '#000' }}; height: {{ windowHeight ? windowHeight + 'px' : '100%' }}; font-size: {{ fontSize }}px; line-height: {{ lineHeight }};">
   <view wx:for="{{contentChunks}}" wx:key="id" id="{{item.id}}">
     <long-press-gesture-handler>
       <rich-text nodes="{{item.content}}" user-select="{{ true }}">
@@ -25,30 +22,24 @@
 <van-popup show="{{ showFooterBar }}" overlay="{{false}}" position="bottom" custom-style="height: 220px;">
   <view style="padding: 15px">
     <view style="display: flex; justify-content: space-between; align-items: center;">
-      <van-button icon="/statics/images/letter2.png" disabled="{{ fontSize <= fontSizeMin }}"
-        bind:click="adjustFontSize" custom-style="border: none" data-type="decrease" />
+      <van-button icon="/statics/images/letter2.png" disabled="{{ fontSize <= fontSizeMin }}" bind:click="adjustFontSize" custom-style="border: none" data-type="decrease" />
       <view style="flex-grow: 1; margin: 0 15px;">
-        <van-slider use-slot step="2" min="{{ fontSizeMin }}" max="{{ fontSizeMax }}" value="{{ fontSize }}"
-          inactive-color="#e5e5e5" active-color="#e5e5e5" use-button-slot bind:drag="adjustFontSize" data-type="set">
+        <van-slider use-slot step="2" min="{{ fontSizeMin }}" max="{{ fontSizeMax }}" value="{{ fontSize }}" inactive-color="#e5e5e5" active-color="#e5e5e5" use-button-slot bind:drag="adjustFontSize" data-type="set">
           <van-button slot="button" size="mini" plain round hairline>{{ fontSize }}
           </van-button>
         </van-slider>
       </view>
-      <van-button icon="/statics/images/letter1.png" disabled="{{ fontSize >= fontSizeMax }}"
-        bind:click="adjustFontSize" custom-style="border: none" data-type="increase" />
+      <van-button icon="/statics/images/letter1.png" disabled="{{ fontSize >= fontSizeMax }}" bind:click="adjustFontSize" custom-style="border: none" data-type="increase" />
     </view>
     <view style="display: flex; margin-top: 15px;">
       <view style="display: flex;">
         <van-icon name="/statics/images/line.png" style="padding: 0 15px;" />
-        <van-button round block icon="minus" size="mini" custom-style="height: 44px; min-width: 44px;"
-          disabled="{{ lineHeight <= lineHeightMin }}" bind:click="adjustLineHeight" data-type="decrease" />
+        <van-button round block icon="minus" size="mini" custom-style="height: 44px; min-width: 44px;" disabled="{{ lineHeight <= lineHeightMin }}" bind:click="adjustLineHeight" data-type="decrease" />
         <view style="padding: 0 15px; line-height: 44px;">{{lineHeight}}</view>
-        <van-button round block icon="plus" size="mini" custom-style="height: 44px; min-width: 44px;"
-          disabled="{{ lineHeight >= lineHeightMax }}" bind:click="adjustLineHeight" data-type="increase" />
+        <van-button round block icon="plus" size="mini" custom-style="height: 44px; min-width: 44px;" disabled="{{ lineHeight >= lineHeightMax }}" bind:click="adjustLineHeight" data-type="increase" />
       </view>
       <view style="display: flex; justify-content: center; align-items: center; margin-left: 20px; width: 200px;">
-        <van-button round icon="/statics/images/{{ theme === 'light' ? 'light' : 'dark' }}.png"
-          custom-style=" width: 100px;" bind:click="toggleTheme" />
+        <van-button round icon="/statics/images/{{ theme === 'light' ? 'light' : 'dark' }}.png" custom-style=" width: 100px;" bind:click="toggleTheme" />
       </view>
     </view>
     <view style="display: flex; margin-top: 15px; justify-content: space-around;">
@@ -58,12 +49,9 @@
   </view>
 </van-popup>
 
-<van-popup show="{{ showChapters }}" bind:close="switchChapters" safe-area-inset-top position="bottom"
-  custom-style="height: 85%;" close-on-click-overlay closeable>
+<van-popup show="{{ showChapters }}" bind:close="switchChapters" safe-area-inset-top position="bottom" custom-style="height: 85%;" close-on-click-overlay closeable>
   <view>
     <view style="height: 44px; line-height: 44px; margin-left: 10px;">目录</view>
-    <van-cell border wx:for="{{ chapters }}" wx:key="index" clickable title="第{{ item.seqId }}章 {{ item.title }}"
-      custom-class="chapter-item {{ currentChunkIndex === item.seqId - 1 ? 'active' : '' }}" bind:click="jumpToChapter"
-      data-chapterid="{{ item.seqId }}" class="chapter-id-{{item.seqId}}" />
+    <van-cell border wx:for="{{ chapters }}" wx:key="index" clickable title="第{{ item.seqId }}章 {{ item.title }}" custom-class="chapter-item {{ currentChunkIndex === item.seqId - 1 ? 'active' : '' }}" bind:click="jumpToChapter" data-chapterid="{{ item.seqId }}" class="chapter-id-{{item.seqId}}" />
   </view>
 </van-popup>
