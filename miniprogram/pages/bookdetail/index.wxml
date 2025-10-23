@@ -6,27 +6,68 @@
 
   <!-- 阅读区域 -->
   <view class="reader-content" id="readerContent">
-    <!-- 翻页动画容器 -->
-    <view class="page-container {{isAnimating ? 'animating' : ''}}">
-      <!-- 当前页 -->
-      <view class="page current-page" style="{{pageStyle}}">
-        <text class="page-text" selectable user-select>{{currentPageText}}</text>
+    <!-- 手势翻页区域 -->
+    <view class="page-swipe-area" bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd" bindtouchcancel="onTouchEnd">
+      <!-- 翻页动画容器 -->
+      <view class="page-container {{pageAnimationClass}}">
+        <!-- 上一页（用于翻页动画） -->
+        <view class="page prev-page" style="{{pageStyle}}" wx:if="{{showPrevPage}}">
+          <text class="page-text" selectable user-select>{{prevPageText}}</text>
+        </view>
+
+        <!-- 当前页 -->
+        <view class="page current-page" style="{{pageStyle}}">
+          <text class="page-text" selectable user-select>{{currentPageText}}</text>
+        </view>
+
+        <!-- 下一页 -->
+        <view class="page next-page" style="{{pageStyle}}" wx:if="{{showNextPage}}">
+          <text class="page-text" selectable user-select>{{nextPageText}}</text>
+        </view>
       </view>
 
-      <!-- 下一页（预加载） -->
-      <view class="page next-page" style="{{pageStyle}}" wx:if="{{nextPageText}}">
-        <text class="page-text" selectable user-select>{{nextPageText}}</text>
-      </view>
+      <!-- 点击翻页区域 -->
+      <view class="tap-area left-tap-area" bindtap="onTapPrev"></view>
+      <view class="tap-area right-tap-area" bindtap="onTapNext"></view>
     </view>
 
     <!-- 进度指示器 -->
-    <view class="progress-indicator">
-      <text class="progress-text">{{currentPage}}/{{totalPages}}</text>
+    <!-- <view class="progress-indicator">
+      <view class="progress-controls">
+        <van-icon name="arrow-left" class="control-icon" bindtap="prevPage" />
+        <text class="progress-text">{{currentPage}}/{{totalPages}}</text>
+        <van-icon name="arrow" class="control-icon" bindtap="nextPage" />
+      </view>
       <view class="progress-bar">
         <view class="progress-inner" style="width: {{(currentPage/totalPages)*100}}%"></view>
       </view>
-    </view>
+    </view> -->
   </view>
+
+  <!-- 操作栏 -->
+  <view class="action-bar">
+    <van-icon name="setting-o" bind:tap="toggleSettings" />
+    <van-icon name="bookmark-o" bind:tap="addBookmark" />
+    <van-icon name="bars" bind:tap="showChapterList" />
+  </view>
+
+  <!-- 底部操作栏 -->
+  <!-- <view class="bottom-action-bar">
+    <view class="action-group">
+      <van-icon name="bars" class="action-icon" bindtap="showChapterList" />
+      <text class="action-text">目录</text>
+    </view>
+
+    <view class="action-group">
+      <van-icon name="bookmark-o" class="action-icon" bindtap="addBookmark" />
+      <text class="action-text">书签</text>
+    </view>
+
+    <view class="action-group">
+      <van-icon name="setting-o" class="action-icon" bindtap="toggleSettings" />
+      <text class="action-text">设置</text>
+    </view>
+  </view> -->
 
   <!-- 设置面板 -->
   <view class="settings-panel {{showSettings ? 'show' : ''}}">
@@ -36,6 +77,13 @@
     </view>
 
     <view class="settings-content">
+      <view class="setting-item">
+        <text>翻页动画</text>
+        <picker range="{{['滑动效果', '淡入淡出', '翻页效果', '无动画']}}" value="{{animationIndex}}" bindchange="onAnimationChange">
+          <view class="picker">{{getAnimationName(animationType)}}</view>
+        </picker>
+      </view>
+
       <view class="setting-item">
         <text>字体大小</text>
         <slider value="{{fontSize}}" min="14" max="30" step="1" bind:change="onFontSizeChange" />
@@ -48,26 +96,19 @@
         <text class="value">{{lineHeight}}倍</text>
       </view>
 
-      <view class="setting-item">
+      <!-- <view class="setting-item">
         <text>页边距</text>
         <slider value="{{pagePadding}}" min="10" max="40" step="2" bind:change="onPaddingChange" />
         <text class="value">{{pagePadding}}px</text>
-      </view>
+      </view> -->
 
-      <view class="setting-item">
+      <!-- <view class="setting-item">
         <text>字体</text>
         <picker range="{{fontFamilies}}" value="{{fontIndex}}" bind:change="onFontChange">
           <view class="picker">{{fontFamilies[fontIndex]}}</view>
         </picker>
-      </view>
+      </view> -->
     </view>
-  </view>
-
-  <!-- 操作栏 -->
-  <view class="action-bar">
-    <van-icon name="setting-o" bind:tap="toggleSettings" />
-    <van-icon name="bookmark-o" bind:tap="addBookmark" />
-    <van-icon name="bars" bind:tap="showChapterList" />
   </view>
 
   <!-- 隐藏的Canvas用于测量 -->

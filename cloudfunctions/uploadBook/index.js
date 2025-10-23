@@ -25,9 +25,12 @@ exports.main = async function (event, context) {
         totalLength,
         encoding,
         coverUrl,
-        lastReadPos: 0, // 初始阅读位置
         createTime: db.serverDate(),
         updateTime: db.serverDate(),
+        readingProgress: {
+          chapterId: 0,
+          page: 0,
+        },
       },
     });
 

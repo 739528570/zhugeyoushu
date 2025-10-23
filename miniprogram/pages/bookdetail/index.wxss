@@ -3,12 +3,7 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f5f0e6;
-  /* 羊皮纸色背景 */
-}
-
-.reader-navbar {
-  flex-shrink: 0;
+  /* background: #f5f0e6; */
 }
 
 .reader-content {
@@ -17,17 +12,39 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 10px 0;
 }
 
-.page-container {
+/* 手势翻页区域 */
+.page-swipe-area {
   flex: 1;
   position: relative;
+  overflow: hidden;
+}
+
+/* 翻页动画容器 */
+.page-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  /* transition: transform 0.3s ease; */
+}
+
+/* 翻页动画效果 */
+.page-container.slide-left {
+  transform: translateX(-100%);
+  /* transition: transform 0.3s ease; */
+}
+
+.page-container.slide-right {
+  transform: translateX(100%);
   transition: transform 0.3s ease;
 }
 
-.page-container.animating {
-  transition: transform 0.3s ease;
+.page-container.flip {
+  perspective: 1200px;
 }
 
 .page {
@@ -36,12 +53,21 @@
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 20px;
+  /* padding: 10px; */
   background: #fefcf5;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-  margin: 10px;
+  /* border-radius: 4px; */
+  /* margin: 10px; */
   overflow: hidden;
+  backface-visibility: hidden;
+}
+
+.page.prev-page {
+  transform: translateX(-100%);
+}
+
+.page.next-page {
+  transform: translateX(100%);
 }
 
 .page-text {
@@ -52,22 +78,49 @@
   word-break: break-all;
 }
 
-.next-page {
-  transform: translateX(100%);
+/* 点击翻页区域 */
+.tap-area {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 30%;
+  z-index: 10;
 }
 
+.left-tap-area {
+  left: 0;
+}
+
+.right-tap-area {
+  right: 0;
+}
+
+/* 进度指示器增强 */
 .progress-indicator {
   padding: 10px 20px;
   background: rgba(255, 255, 255, 0.9);
   border-top: 1px solid #eee;
+  flex-shrink: 0;
+}
+
+.progress-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.control-icon {
+  font-size: 16px;
+  color: #07c160;
+  padding: 5px 10px;
 }
 
 .progress-text {
-  font-size: 12px;
+  font-size: 14px;
   color: #666;
   text-align: center;
-  display: block;
-  margin-bottom: 5px;
+  flex: 1;
 }
 
 .progress-bar {
@@ -81,6 +134,106 @@
   height: 100%;
   background: #07c160;
   transition: width 0.3s ease;
+}
+
+/* 底部操作栏 */
+.bottom-action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.95);
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0;
+  z-index: 100;
+}
+
+.action-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.action-icon {
+  font-size: 20px;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.action-icon.large {
+  font-size: 24px;
+}
+
+.action-text {
+  font-size: 12px;
+  color: #666;
+}
+
+/* 翻页动画效果 */
+@keyframes slideInLeft {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutLeft {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.slide-in-left {
+  animation: slideInLeft 0.3s ease forwards;
+}
+
+.slide-in-right {
+  animation: slideInRight 0.3s ease forwards;
+}
+
+.slide-out-left {
+  animation: slideOutLeft 0.3s ease forwards;
+}
+
+.slide-out-right {
+  animation: slideOutRight 0.3s ease forwards;
 }
 
 .settings-panel {
@@ -147,12 +300,13 @@
 .action-bar {
   position: fixed;
   bottom: 20px;
-  right: 20px;
+  right: 10px;
   display: flex;
   flex-direction: column;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.2);
   border-radius: 20px;
   padding: 10px;
+  z-index: 20;
 }
 
 .action-bar .van-icon {

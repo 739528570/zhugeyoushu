@@ -12,13 +12,12 @@ exports.main = async function (params) {
   try {
     const wxContext = cloud.getWXContext();
     const openid = wxContext.OPENID;
-    const { bookId, lastReadPos } = params;
+    const { bookId, readingProgress } = params;
 
-    if (!openid || !bookId === undefined || lastReadPos === undefined) {
+    if (!openid || !bookId === undefined || readingProgress === undefined) {
       return { code: 400, message: "参数不完整", success: false };
     }
 
-    // 验证书籍归属
     const doc = await db
       .collection("books")
       .where({ _id: bookId, openid })
@@ -34,7 +33,7 @@ exports.main = async function (params) {
       .where({ _id: bookId })
       .update({
         data: {
-          lastReadPos,
+          readingProgress,
           updateTime: db.serverDate(),
         },
       });
