@@ -3,10 +3,10 @@ import { booksPath } from "../../utils/index";
 const app = getApp();
 // 翻页动画类型
 const ANIMATION_TYPES = {
-  SLIDE: 'slide',      // 滑动效果
-  FADE: 'fade',        // 淡入淡出
-  FLIP: 'flip',        // 翻页效果
-  NONE: 'none'         // 无动画
+  SLIDE: "slide", // 滑动效果
+  FADE: "fade", // 淡入淡出
+  FLIP: "flip", // 翻页效果
+  NONE: "none", // 无动画
 };
 
 Page({
@@ -14,20 +14,20 @@ Page({
     book: {},
     // 阅读内容
     chapterId: 0,
-    chapterContent: '',
+    chapterContent: "",
     chapters: [],
 
     // 分页数据
     pages: [],
     currentPage: 0,
     totalPages: 0,
-    currentPageText: '',
-    nextPageText: '',
-    prevPageText: '',
+    currentPageText: "",
+    nextPageText: "",
+    prevPageText: "",
 
     // 翻页状态
     isAnimating: false,
-    pageAnimationClass: '',
+    pageAnimationClass: "",
     animationType: ANIMATION_TYPES.SLIDE,
     showPrevPage: false,
     showNextPage: false,
@@ -45,10 +45,10 @@ Page({
     lineHeight: 1.6,
     pagePadding: 10,
     fontIndex: 0,
-    fontFamilies: ['系统字体', '宋体', '黑体', '楷体'],
+    fontFamilies: ["系统字体", "宋体", "黑体", "楷体"],
 
     // 页面样式
-    pageStyle: '',
+    pageStyle: "",
     pageWidth: 0,
     pageHeight: 0,
 
@@ -61,43 +61,42 @@ Page({
     canvasHeight: 500,
     measureContext: null,
   },
-  readingProgress: {
-    chapterId: 0,
-    page: 0,
-  },
 
   async onLoad(options) {
     this.bookId = options.id;
     this.filePath = `${booksPath}/${options.id}`;
     await this.initBook();
     await this.getChapters();
-    this.initChapter();
+    this.initChapter(this.data.chapterId);
     this.initPageSize(); // 初始化页面尺寸后
 
     // 异步初始化Canvas上下文
-    this.initMeasureContext().then(() => {
-      this.calculatePages(); // 开始计算分页
-    }).catch(err => {
-      console.error('Canvas初始化失败:', err);
-    });
+    this.initMeasureContext()
+      .then(() => {
+        this.calculatePages(); // 开始计算分页
+        this.updateDisplayPage();
+      })
+      .catch((err) => {
+        console.error("Canvas初始化失败:", err);
+      });
   },
 
   // 初始化章节内容
   async initBook() {
     try {
       const books = (await wx.getStorageSync("books")) || [];
-      const book = books.find(item => item._id === this.bookId);
+      const book = books.find((item) => item._id === this.bookId);
       if (book) {
         this.setData({
           book,
-          readingProgress: book.readingProgress,
-          currentPage: book.readingProgress.page
+          chapterId: book.readingProgress.chapterId,
+          currentPage: book.readingProgress.page,
         });
       }
     } catch (error) {
       wx.showToast({
-        title: '加载书籍失败',
-        icon: 'none'
+        title: "加载书籍失败",
+        icon: "none",
       });
     }
   },
@@ -107,16 +106,16 @@ Page({
     try {
       const content = await this.loadChapterData(chapterId);
       this.setData({
-        chapterContent: content
+        chapterContent: content,
       });
 
       // 恢复阅读进度
       // this.restoreReadingProgress();
     } catch (error) {
-      console.error(error)
+      console.error(error);
       wx.showToast({
-        title: '加载章节失败',
-        icon: 'none'
+        title: "加载章节失败",
+        icon: "none",
       });
     }
   },
@@ -135,13 +134,9 @@ Page({
 
   // 初始化页面尺寸
   initPageSize() {
-    const systemInfo = wx.getWindowInfo();
-    const screenWidth = systemInfo.screenWidth;
-    const screenHeight = systemInfo.windowHeight;
-
     // 计算阅读区域尺寸（考虑导航栏和进度条高度）
     const query = wx.createSelectorQuery();
-    query.select('#readerContent').boundingClientRect();
+    query.select("#readerContent").boundingClientRect();
     query.exec((res) => {
       if (res[0]) {
         const pageWidth = res[0].width; // 减去左右边距
@@ -151,7 +146,7 @@ Page({
           pageWidth: pageWidth,
           pageHeight: pageHeight,
           canvasWidth: pageWidth,
-          canvasHeight: pageHeight
+          canvasHeight: pageHeight,
         });
 
         this.updatePageStyle();
@@ -163,16 +158,17 @@ Page({
   initMeasureContext() {
     return new Promise((resolve, reject) => {
       const query = wx.createSelectorQuery();
-      query.select('#measureCanvas')
+      query
+        .select("#measureCanvas")
         .fields({ node: true, size: true })
         .exec((res) => {
           if (!res[0] || !res[0].node) {
-            reject(new Error('未能获取到Canvas节点'));
+            reject(new Error("未能获取到Canvas节点"));
             return;
           }
 
           const canvas = res[0].node;
-          const ctx = canvas.getContext('2d');
+          const ctx = canvas.getContext("2d");
 
           // 初始化画布大小（解决高分屏模糊问题）
           const dpr = wx.getWindowInfo().pixelRatio;
@@ -185,14 +181,14 @@ Page({
 
           // 设置默认字体（使用标准font属性）
           ctx.font = `${this.data.fontSize}px ${this.getFontFamily()}`;
-          ctx.textBaseline = 'top'; // 直接赋值，而非调用方法
-          ctx.textAlign = 'left';
-          ctx.fillStyle = '#000000';
+          ctx.textBaseline = "top"; // 直接赋值，而非调用方法
+          ctx.textAlign = "left";
+          ctx.fillStyle = "#000000";
 
           this.measureCanvas = canvas;
           this.setData({ measureContext: ctx });
 
-          console.log('Canvas 2D 初始化成功，字体设置:', ctx.font);
+          console.log("Canvas 2D 初始化成功，字体设置:", ctx.font);
           resolve();
         });
     });
@@ -200,7 +196,13 @@ Page({
 
   // 更新页面样式
   updatePageStyle() {
-    const { fontSize, lineHeight, pagePadding, fontIndex, fontFamilies } = this.data;
+    const {
+      fontSize,
+      lineHeight,
+      pagePadding,
+      fontIndex,
+      fontFamilies,
+    } = this.data;
     const fontFamily = this.getFontFamily(fontFamilies[fontIndex]);
 
     const style = `
@@ -216,17 +218,24 @@ Page({
   // 获取字体族映射
   getFontFamily(fontName) {
     const fontMap = {
-      '系统字体': '-apple-system, BlinkMacSystemFont, sans-serif',
-      '宋体': 'SimSun, serif',
-      '黑体': 'SimHei, sans-serif',
-      '楷体': 'KaiTi, serif'
+      系统字体: "-apple-system, BlinkMacSystemFont, sans-serif",
+      宋体: "SimSun, serif",
+      黑体: "SimHei, sans-serif",
+      楷体: "KaiTi, serif",
     };
-    return fontMap[fontName] || fontMap['系统字体'];
+    return fontMap[fontName] || fontMap["系统字体"];
   },
 
   // 核心分页计算函数
-  calculatePages() {
-    const { chapterContent, fontSize, lineHeight, pagePadding, pageWidth, pageHeight } = this.data;
+  async calculatePages() {
+    const {
+      chapterContent,
+      fontSize,
+      lineHeight,
+      pagePadding,
+      pageWidth,
+      pageHeight,
+    } = this.data;
 
     if (!chapterContent || !pageWidth || !pageHeight) {
       setTimeout(() => this.calculatePages(), 100);
@@ -245,12 +254,12 @@ Page({
     const ctx = this.data.measureContext;
     // ctx.setFontSize(fontSize);
     ctx.font = `${fontSize}px sans-serif`;
-    ctx.textBaseline = 'top';
+    ctx.textBaseline = "top";
 
     const pages = [];
-    let currentPageText = '';
+    let currentPageText = "";
     let currentPageHeight = 0;
-    let currentLineText = '';
+    let currentLineText = "";
     let currentLineWidth = 0;
 
     // 处理文本中的特殊字符和格式
@@ -280,7 +289,7 @@ Page({
       // 检查是否需要换页
       if (currentPageHeight + actualLineHeight > textHeight) {
         pages.push(currentPageText.trim());
-        currentPageText = '';
+        currentPageText = "";
         currentPageHeight = 0;
 
         // 处理跨页字符
@@ -295,16 +304,16 @@ Page({
       }
 
       // 处理换行符
-      if (char === '\n') {
+      if (char === "\n") {
         // currentPageText += currentLineText + '\n';
         currentPageText += currentLineText;
-        currentLineText = '';
+        currentLineText = "";
         currentLineWidth = 0;
         currentPageHeight += actualLineHeight;
 
         if (currentPageHeight + actualLineHeight > textHeight) {
           pages.push(currentPageText.trim());
-          currentPageText = '';
+          currentPageText = "";
           currentPageHeight = 0;
         }
       }
@@ -315,12 +324,12 @@ Page({
       pages.push((currentPageText + currentLineText).trim());
     }
 
-    this.setData({
+    await this.setData({
       pages: pages,
-      totalPages: pages.length
+      totalPages: pages.length,
     });
 
-    this.updateDisplayPage();
+    // this.updateDisplayPage();
     // this.saveReadingProgress();
   },
 
@@ -338,28 +347,40 @@ Page({
   preprocessContent(content) {
     // 统一换行符
     // let processed = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    let processed = content.replace(/\r\n/g, '\n');
+    let processed = content.replace(/\r\n/g, "\n");
 
     // 处理连续空格
-    processed = processed.replace(/[ ]+/g, ' ');
+    processed = processed.replace(/[ ]+/g, " ");
 
     // 处理特殊标点
-    processed = processed.replace(/\.{3,}/g, '…');
+    processed = processed.replace(/\.{3,}/g, "…");
 
     return processed;
   },
 
   // 处理行尾换行（避头尾规则）
   processLineBreak(lineText, nextChar) {
-    const lineBreakChars = ['，', '。', '！', '？', '；', '」', '》', '”', '》'];
-    const headBreakChars = ['「', '《', '“'];
+    const lineBreakChars = [
+      "，",
+      "。",
+      "！",
+      "？",
+      "；",
+      "」",
+      "》",
+      "”",
+      "》",
+    ];
+    const headBreakChars = ["「", "《", "“"];
 
     let currentLine = lineText;
-    let remainingText = '';
+    let remainingText = "";
 
     // 如果行尾是标点，且下一个字符是起始标点，调整换行位置
-    if (lineBreakChars.includes(lineText.slice(-1)) &&
-      headBreakChars.includes(nextChar)) {
+    if (
+      lineBreakChars.includes(lineText.slice(-1)) &&
+      headBreakChars.includes(nextChar)
+    ) {
       // 将行尾字符移到下一行
       remainingText = lineText.slice(-1);
       currentLine = lineText.slice(0, -1);
@@ -367,20 +388,20 @@ Page({
 
     return {
       lineText: currentLine,
-      remainingText: remainingText
+      remainingText: remainingText,
     };
   },
 
   // 处理页尾换行
   processPageBreak(lineText) {
     // 简单的页尾处理：在最近的空格或标点处分页
-    const breakPoints = [' ', '，', '。', '！', '？', '；'];
+    const breakPoints = [" ", "，", "。", "！", "？", "；"];
 
     for (let i = lineText.length - 1; i >= 0; i--) {
       if (breakPoints.includes(lineText[i])) {
         return {
           currentText: lineText.slice(0, i + 1),
-          nextText: lineText.slice(i + 1)
+          nextText: lineText.slice(i + 1),
         };
       }
     }
@@ -388,21 +409,9 @@ Page({
     // 如果没有合适的断点，强制在中间分割
     const splitIndex = Math.floor(lineText.length / 2);
     return {
-      currentText: lineText.slice(0, splitIndex) + '-',
-      nextText: lineText.slice(splitIndex)
+      currentText: lineText.slice(0, splitIndex) + "-",
+      nextText: lineText.slice(splitIndex),
     };
-  },
-
-  // 更新显示页面
-  updateDisplayPage() {
-    const { pages, currentPage } = this.data;
-
-    if (pages.length === 0) return;
-
-    this.setData({
-      currentPageText: pages[currentPage] || '',
-      nextPageText: pages[currentPage + 1] || ''
-    });
   },
 
   // 手势翻页 - 触摸开始
@@ -416,7 +425,7 @@ Page({
       touchCurrentX: touch.clientX,
       isSwiping: false,
       swipeDirection: null,
-      swipeDistance: 0
+      swipeDistance: 0,
     });
   },
 
@@ -429,10 +438,14 @@ Page({
     const deltaY = touch.clientY - this.data.touchStartY;
 
     // 判断是否为水平滑动
-    if (!this.data.isSwiping && Math.abs(deltaX) > 5 && Math.abs(deltaX) > Math.abs(deltaY)) {
+    if (
+      !this.data.isSwiping &&
+      Math.abs(deltaX) > 5 &&
+      Math.abs(deltaX) > Math.abs(deltaY)
+    ) {
       this.setData({
         isSwiping: true,
-        swipeDirection: deltaX > 0 ? 'right' : 'left'
+        swipeDirection: deltaX > 0 ? "right" : "left",
       });
     }
 
@@ -446,7 +459,7 @@ Page({
 
       this.setData({
         touchCurrentX: touch.clientX,
-        swipeDistance: distance
+        swipeDistance: distance,
       });
 
       // 实时更新页面位置（滑动跟随效果）
@@ -479,7 +492,7 @@ Page({
     this.setData({
       touchStartX: 0,
       isSwiping: false,
-      swipeDistance: 0
+      swipeDistance: 0,
     });
   },
 
@@ -487,14 +500,14 @@ Page({
   updatePagePosition(deltaX) {
     const translateX = deltaX * 0.5; // 减缓滑动速度
     this.setData({
-      pageAnimationClass: `translate-x-${translateX}`
+      pageAnimationClass: `translate-x-${translateX}`,
     });
   },
 
   // 重置页面位置
   resetPagePosition() {
     this.setData({
-      pageAnimationClass: ''
+      pageAnimationClass: "",
     });
   },
 
@@ -511,27 +524,40 @@ Page({
   },
 
   // 翻到上一页
-  prevPage() {
+  async prevPage() {
     if (this.data.isAnimating || this.data.currentPage <= 0) {
       if (this.data.currentPage <= 0) {
-        this.showFirstPageTip();
+        const nextChapterId = this.data.chapterId - 1;
+        if (nextChapterId < 0) {
+          this.showLastPageTip();
+        } else {
+          this.prevChapter();
+        }
       }
       return;
     }
 
-    this.goToPage(this.data.currentPage - 1, 'right');
+    this.goToPage(this.data.currentPage - 1, "right");
   },
 
   // 翻到下一页
-  nextPage() {
-    if (this.data.isAnimating || this.data.currentPage >= this.data.totalPages - 1) {
+  async nextPage() {
+    if (
+      this.data.isAnimating ||
+      this.data.currentPage >= this.data.totalPages - 1
+    ) {
       if (this.data.currentPage >= this.data.totalPages - 1) {
-        this.showLastPageTip();
+        const nextChapterId = this.data.chapterId + 1;
+        if (nextChapterId > this.data.chapters.length) {
+          this.showLastPageTip();
+        } else {
+          this.nextChapter()
+        }
       }
       return;
     }
 
-    this.goToPage(this.data.currentPage + 1, 'left');
+    this.goToPage(this.data.currentPage + 1, "left");
   },
 
   // 显示第一页提示
@@ -553,16 +579,20 @@ Page({
   },
 
   // 核心翻页方法
-  goToPage(pageNum, direction = 'left') {
-    if (pageNum < 0 || pageNum >= this.data.totalPages || this.data.isAnimating) {
+  goToPage(pageNum, direction = "left") {
+    if (
+      pageNum < 0 ||
+      pageNum >= this.data.totalPages ||
+      this.data.isAnimating
+    ) {
       return;
     }
 
     // 设置动画状态
     this.setData({
       isAnimating: true,
-      showPrevPage: direction === 'right',
-      showNextPage: direction === 'left'
+      showPrevPage: direction === "right",
+      showNextPage: direction === "left",
     });
 
     // 执行翻页动画
@@ -571,9 +601,9 @@ Page({
       this.setData({
         currentPage: pageNum,
         isAnimating: false,
-        pageAnimationClass: '',
+        pageAnimationClass: "",
         showPrevPage: false,
-        showNextPage: false
+        showNextPage: false,
       });
 
       this.updateDisplayPage();
@@ -586,10 +616,10 @@ Page({
 
   // 开始翻页动画
   startPageAnimation(direction, callback) {
-    const animationClass = direction === 'left' ? 'slide-left' : 'slide-right';
+    const animationClass = direction === "left" ? "slide-left" : "slide-right";
 
     this.setData({
-      pageAnimationClass: animationClass
+      pageAnimationClass: animationClass,
     });
 
     // 动画完成后执行回调
@@ -605,14 +635,14 @@ Page({
     // 预加载上一页
     if (currentPage > 0) {
       this.setData({
-        prevPageText: pages[currentPage - 1] || ''
+        prevPageText: pages[currentPage - 1] || "",
       });
     }
 
     // 预加载下一页
     if (currentPage < totalPages - 1) {
       this.setData({
-        nextPageText: pages[currentPage + 1] || ''
+        nextPageText: pages[currentPage + 1] || "",
       });
     }
   },
@@ -626,9 +656,10 @@ Page({
     }
 
     this.setData({
-      currentPageText: pages[currentPage] || '',
-      prevPageText: currentPage > 0 ? pages[currentPage - 1] : '',
-      nextPageText: currentPage < pages.length - 1 ? pages[currentPage + 1] : ''
+      currentPageText: pages[currentPage] || "",
+      prevPageText: currentPage > 0 ? pages[currentPage - 1] : "",
+      nextPageText:
+        currentPage < pages.length - 1 ? pages[currentPage + 1] : "",
     });
   },
 
@@ -636,60 +667,52 @@ Page({
   jumpToPage(pageNum) {
     if (pageNum === this.data.currentPage) return;
 
-    const direction = pageNum > this.data.currentPage ? 'left' : 'right';
+    const direction = pageNum > this.data.currentPage ? "left" : "right";
     this.goToPage(pageNum, direction);
   },
 
   // 跳转到下一章
-  nextChapter() {
+  async nextChapter() {
     // 这里需要实现获取下一章逻辑
     wx.showToast({
-      title: '加载下一章...',
-      icon: 'loading'
+      title: "加载下一章...",
+      icon: "loading",
     });
-
-    // 模拟加载下一章
-    setTimeout(() => {
-      this.setData({
-        currentPage: 0,
-        totalPages: 50 // 假设新章节有50页
-      });
-
-      this.calculatePages();
-      this.goToPage(0, 'left');
-    }, 1000);
+    await this.initChapter(this.data.chapterId + 1);
+    await this.calculatePages();
+    await this.setData({
+      chapterId: this.data.chapterId + 1,
+      currentPage: 0
+    });
+    this.goToPage(0, "left");
   },
 
   // 跳转到上一章
-  prevChapter() {
+  async prevChapter() {
     // 这里需要实现获取上一章逻辑
     wx.showToast({
-      title: '加载上一章...',
-      icon: 'loading'
+      title: "加载上一章...",
+      icon: "loading",
     });
-
-    // 模拟加载上一章
-    setTimeout(() => {
-      this.setData({
-        currentPage: 0,
-        totalPages: 45 // 假设上一章有45页
-      });
-
-      this.calculatePages();
-      this.goToPage(0, 'right');
-    }, 1000);
+    await this.initChapter(this.data.chapterId - 1);
+    await this.calculatePages();
+    this.setData({
+      chapterId: this.data.chapterId - 1,
+      currentPage: this.data.totalPages - 1
+    });
+    this.goToPage(0, "right");
   },
 
   // 切换动画效果
   switchAnimationType(type) {
     if (Object.values(ANIMATION_TYPES).includes(type)) {
       this.setData({
-        animationType: type
+        animationType: type,
       });
 
       wx.showToast({
         title: `已切换为${this.getAnimationName(type)}`,
-        icon: 'success'
+        icon: "success",
       });
     }
   },
@@ -697,12 +720,12 @@ Page({
   // 获取动画名称
   getAnimationName(type) {
     const names = {
-      [ANIMATION_TYPES.SLIDE]: '滑动效果',
-      [ANIMATION_TYPES.FADE]: '淡入淡出',
-      [ANIMATION_TYPES.FLIP]: '翻页效果',
-      [ANIMATION_TYPES.NONE]: '无动画'
+      [ANIMATION_TYPES.SLIDE]: "滑动效果",
+      [ANIMATION_TYPES.FADE]: "淡入淡出",
+      [ANIMATION_TYPES.FLIP]: "翻页效果",
+      [ANIMATION_TYPES.NONE]: "无动画",
     };
-    return names[type] || '未知效果';
+    return names[type] || "未知效果";
   },
 
   // 当阅读设置（如字体大小）变更时
@@ -743,6 +766,7 @@ Page({
   // 重新计算分页（防抖处理）
   recalculatePages: debounce(function () {
     this.calculatePages();
+    this.updateDisplayPage();
   }, 300),
 
   // 窗口尺寸变化处理
@@ -750,6 +774,7 @@ Page({
     this.initPageSize();
     setTimeout(() => {
       this.calculatePages();
+      this.updateDisplayPage();
     }, 300);
   },
 
@@ -764,27 +789,27 @@ Page({
       // await wx.setStorageSync('readingProgress', progress);
       // 调用云函数同步进度
       await wx.cloud.callFunction({
-        name: 'updateBookReadPos',
+        name: "updateBookReadPos",
         data: {
           bookId: this.bookId,
-          readingProgress
-        }
+          readingProgress,
+        },
       });
     } catch (error) {
-      console.error('同步进度失败:', error);
+      console.error("同步进度失败:", error);
     }
   },
 
   restoreReadingProgress() {
     try {
-      const progress = wx.getStorageSync('readingProgress');
+      const progress = wx.getStorageSync("readingProgress");
       if (progress && progress.chapterId === this.data.chapterId) {
         this.goToPage(progress.page);
       } else {
         this.goToPage(0);
       }
     } catch (error) {
-      console.error(error)
+      console.error(error);
     }
   },
 
@@ -798,18 +823,18 @@ Page({
       chapterId: this.data.chapterId,
       chapterTitle: this.data.chapterTitle,
       page: this.data.currentPage,
-      text: this.data.currentPageText.substring(0, 50) + '...',
-      timestamp: Date.now()
+      text: this.data.currentPageText.substring(0, 50) + "...",
+      timestamp: Date.now(),
     };
-    console.log('bookmark', bookmark)
+    console.log("bookmark", bookmark);
     // 保存书签
-    let bookmarks = wx.getStorageSync('bookmarks') || [];
+    let bookmarks = wx.getStorageSync("bookmarks") || [];
     bookmarks.unshift(bookmark);
-    wx.setStorageSync('bookmarks', bookmarks.slice(0, 100)); // 限制数量
+    wx.setStorageSync("bookmarks", bookmarks.slice(0, 100)); // 限制数量
 
     wx.showToast({
-      title: '添加书签成功',
-      icon: 'success'
+      title: "添加书签成功",
+      icon: "success",
     });
   },
 
@@ -842,12 +867,11 @@ Page({
     const buffer = await fs.readFileSync(this.filePath);
     const arr = new Uint8Array(buffer);
     fullContent = decoder.decode(arr);
-
     // 截取指定范围的片段（考虑边界情况）
     const chunk = fullContent.substring(start, end);
-
+    console.log("chunk", chapterId, chunk);
     return chunk;
-  }
+  },
 });
 
 // 防抖函数
