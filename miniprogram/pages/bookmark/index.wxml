@@ -1,7 +1,46 @@
 <!--pages/bookmark/index.wxml-->
 <view class="container">
-	<van-nav-bar title="TEST" placeholder>
-	</van-nav-bar>
-	<footer active="bookmark" />
-</view>
+  <van-nav-bar title="书签" placeholder />
 
+  <view class="bookmark-page">
+    <!-- 页面标题 -->
+    <view class="page-header">
+      <view class="header-title">我的书签</view>
+      <view class="header-subtitle">共{{bookmarks.length}}个书签</view>
+    </view>
+
+    <!-- 书签列表 -->
+    <view class="bookmark-list">
+      <van-empty wx:if="{{bookmarks.length === 0}}" image="search" description="暂无书签">
+        <van-button type="primary" size="small" bind:click="goToReader" custom-class="empty-button">
+          去阅读
+        </van-button>
+      </van-empty>
+
+      <view wx:else>
+        <block wx:for="{{bookmarks}}" wx:key="id">
+          <van-cell-group title="{{ item.title }}" inset>
+            <van-swipe-cell wx:for="{{ item.bookmark }}" wx:key="_id" wx:for-item="subItem" data-id="{{item.id}}" right-width="{{ 65 }}">
+              <van-cell title="{{subItem.chapterTitle}}" label="{{ subItem.text }}" is-link bind:click="onBookmarkClick" data-item="{{ subItem }}">
+              </van-cell>
+              <view slot="right" class="delete-btn" data-item="{{ subItem }}" bind:tap="deleteBookmark">删除
+              </view>
+            </van-swipe-cell>
+          </van-cell-group>
+        </block>
+      </view>
+    </view>
+
+    <!-- 底部操作栏 -->
+    <view class="action-bar" wx:if="{{bookmarks.length > 0}}">
+      <van-button type="primary" block bind:click="goToReader" class="action-button">
+        继续阅读
+      </van-button>
+      <!-- <van-button type="default" block bind:click="clearAllBookmarks" class="action-button">
+        清空书签
+      </van-button> -->
+    </view>
+  </view>
+
+  <footer active="bookmark" />
+</view>

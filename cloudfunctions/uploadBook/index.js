@@ -26,22 +26,14 @@ exports.main = async function (event, context) {
         encoding,
         coverUrl,
         createTime: db.serverDate(),
-        updateTime: db.serverDate(),
         readingProgress: {
-          chapterId: 0,
+          chapterId: 1,
           page: 0,
+          updateTime: 0,
         },
       },
     });
 
-    // await cloud.callFunction({
-    //   name: 'splitChapters',
-    //   data: {
-    //     bookId: result._id,
-    //     fileType,
-    //     fileUrl
-    //   }
-    // })
     console.log(result)
     return result;
   } catch (err) {

@@ -2,12 +2,15 @@
 
 <view class="reader-container">
   <!-- 顶部导航栏 -->
-  <van-nav-bar title="{{book.title}}" left-text="返回" left-arrow bind:click-left="onBack" custom-class="reader-navbar" />
+  <van-nav-bar title="{{ chapterTitle }}" left-text="返回" left-arrow bind:click-left="onBack" custom-class="reader-navbar" />
 
   <!-- 阅读区域 -->
   <view class="reader-content" id="readerContent">
     <!-- 手势翻页区域 -->
-    <view class="page-swipe-area" bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd" bindtouchcancel="onTouchEnd">
+    <!-- <view class="page-swipe-area" bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd" 
+    bindtouchcancel="onTouchEnd"
+    > -->
+    <view class="page-swipe-area">
       <!-- 翻页动画容器 -->
       <view class="page-container {{pageAnimationClass}}">
         <!-- 上一页（用于翻页动画） -->
@@ -47,8 +50,8 @@
   <!-- 操作栏 -->
   <view class="action-bar">
     <van-icon name="setting-o" bind:tap="toggleSettings" />
-    <van-icon name="bookmark-o" bind:tap="addBookmark" />
-    <van-icon name="bars" bind:tap="showChapterList" />
+    <van-icon name="/statics/images/{{ isMark ? '24gf-bookmarks.svg' : '24gl-bookmarks.svg' }}" bind:tap="addBookmark" />
+    <van-icon name="bars" bind:tap="toggleChapters" />
   </view>
 
   <!-- 设置面板 -->
@@ -59,12 +62,12 @@
     </view>
 
     <view class="settings-content">
-      <view class="setting-item">
+      <!-- <view class="setting-item">
         <text>翻页动画</text>
         <picker range="{{['滑动效果', '淡入淡出', '翻页效果', '无动画']}}" value="{{animationIndex}}" bindchange="onAnimationChange">
           <view class="picker">{{getAnimationName(animationType)}}</view>
         </picker>
-      </view>
+      </view> -->
 
       <view class="setting-item">
         <text>字体大小</text>
@@ -92,6 +95,13 @@
       </view> -->
     </view>
   </view>
+
+  <van-popup show="{{ showChapters }}" bind:close="toggleChapters" safe-area-inset-top position="bottom" custom-style="height: 85%;" close-on-click-overlay closeable>
+    <view>
+      <view style="height: 44px; line-height: 44px; margin-left: 10px;">目录</view>
+      <van-cell border wx:for="{{ chapters }}" wx:key="index" clickable title="第{{ item.chapterId }}章 {{ item.title }}" custom-class="chapter-item {{ chapterId === item.chapterId ? 'active' : '' }}" bind:click="jumpToChapter" data-chapterid="{{ item.chapterId }}" class="chapter-id-{{item.chapterId}}" />
+    </view>
+  </van-popup>
 
   <!-- 隐藏的Canvas用于测量 -->
   <canvas id="measureCanvas" type="2d" style="position: absolute; left: -9999px; width: {{canvasWidth}}px; height: {{canvasHeight}}px;"></canvas>

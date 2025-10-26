@@ -1,1 +1,76 @@
 /* pages/bookmark/index.wxss */
+
+.bookmark-page {
+  min-height: 100vh;
+  background-color: #f7f8fa;
+}
+
+/* 页面头部样式 */
+.page-header {
+  padding: 20px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.header-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.header-subtitle {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+/* 书签列表样式 */
+.bookmark-list {
+  padding: 12px 0;
+}
+
+.chapter-title {
+  font-size: 14px;
+  color: #323233;
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.right-arrow {
+  display: flex;
+  align-items: center;
+}
+
+.delete-btn {
+  flex-direction: row;
+  display: flex;
+  height: 100%;
+  width: 65px;
+  align-items: center;
+  justify-content: center;
+  background: red;
+  color: white;
+}
+
+/* 空状态样式 */
+.empty-button {
+  margin-top: 16px;
+}
+
+/* 底部操作栏样式 */
+.action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 16px;
+  background: white;
+  border-top: 1px solid #ebedf0;
+  display: flex;
+  gap: 12px;
+}
+
+.action-button {
+  flex: 1;
+}

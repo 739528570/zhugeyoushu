@@ -1,6 +1,5 @@
 // pages/bookdetail/index.js
-import { booksPath } from "../../utils/index";
-const app = getApp();
+import { booksPath, debounce } from "../../utils/index";
 // 翻页动画类型
 const ANIMATION_TYPES = {
   SLIDE: "slide", // 滑动效果
@@ -8,14 +7,17 @@ const ANIMATION_TYPES = {
   FLIP: "flip", // 翻页效果
   NONE: "none", // 无动画
 };
+const app = getApp();
 
 Page({
   data: {
     book: {},
     // 阅读内容
-    chapterId: 0,
+    chapterId: 1,
+    chapterTitle: "",
     chapterContent: "",
     chapters: [],
+    bookmark: [],
 
     // 分页数据
     pages: [],
@@ -55,6 +57,8 @@ Page({
     // UI状态
     showSettings: false,
     isAnimating: false,
+    showChapters: false,
+    isMark: false,
 
     // Canvas测量
     canvasWidth: 300,
@@ -63,18 +67,29 @@ Page({
   },
 
   async onLoad(options) {
-    this.bookId = options.id;
-    this.filePath = `${booksPath}/${options.id}`;
-    await this.initBook();
+    console.log(options)
+    this.bookId = options.bookId;
+    this.filePath = `${booksPath}/${options.bookId}`;
     await this.getChapters();
-    this.initChapter(this.data.chapterId);
+    await this.getBookmarks();
+    await this.initBook();
+    if (!options.chapterId) {
+      // 恢复阅读进度
+      await this.restoreReadingProgress();
+    } else {
+      this.setData({
+        isMark: true,
+        chapterId: Number(options.chapterId),
+        currentPage: Number(options.page)
+      })
+    }
+    await this.initChapter(options.chapterId ?? this.data.chapterId);
     this.initPageSize(); // 初始化页面尺寸后
 
     // 异步初始化Canvas上下文
     this.initMeasureContext()
       .then(() => {
         this.calculatePages(); // 开始计算分页
-        this.updateDisplayPage();
       })
       .catch((err) => {
         console.error("Canvas初始化失败:", err);
@@ -86,6 +101,7 @@ Page({
     try {
       const books = (await wx.getStorageSync("books")) || [];
       const book = books.find((item) => item._id === this.bookId);
+
       if (book) {
         this.setData({
           book,
@@ -105,12 +121,11 @@ Page({
   async initChapter(chapterId) {
     try {
       const content = await this.loadChapterData(chapterId);
+      const chapterTitle = this.data.chapters.find(item => item?.chapterId === chapterId)?.title;
       this.setData({
+        chapterTitle: chapterTitle || this.data.book.title,
         chapterContent: content,
       });
-
-      // 恢复阅读进度
-      // this.restoreReadingProgress();
     } catch (error) {
       console.error(error);
       wx.showToast({
@@ -124,11 +139,28 @@ Page({
     try {
       const res = (await wx.getStorageSync("chapters")) || {};
       const chapters = res?.[this.bookId] ?? [];
-      this.setData({
+      await this.setData({
         chapters,
       });
     } catch (error) {
       console.error(error);
+    }
+  },
+
+  async getBookmarks() {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: "getBookmarks",
+        data: {
+          bookId: this.bookId,
+        },
+      });
+      await this.setData({ bookmark: res.result[this.bookId] || [] });
+    } catch (error) {
+      console.error(error);
+      const bookmarks = (await wx.getStorageSync("bookmarks")) || [];
+      const bookmark = bookmarks[this.bookId] || [];
+      await this.setData({ bookmark });
     }
   },
 
@@ -227,7 +259,7 @@ Page({
   },
 
   // 核心分页计算函数
-  async calculatePages() {
+  calculatePages() {
     const {
       chapterContent,
       fontSize,
@@ -324,13 +356,13 @@ Page({
       pages.push((currentPageText + currentLineText).trim());
     }
 
-    await this.setData({
+    this.setData({
       pages: pages,
       totalPages: pages.length,
     });
 
-    // this.updateDisplayPage();
-    // this.saveReadingProgress();
+    this.updateDisplayPage();
+    this.saveReadingProgress();
   },
 
   // 新版测量 - 符合Web标准
@@ -599,6 +631,7 @@ Page({
     this.startPageAnimation(direction, () => {
       // 动画完成后的回调
       this.setData({
+        isMark: this.hasIsMark(pageNum),
         currentPage: pageNum,
         isAnimating: false,
         pageAnimationClass: "",
@@ -607,7 +640,7 @@ Page({
       });
 
       this.updateDisplayPage();
-      // this.saveReadingProgress();
+      this.saveReadingProgress();
 
       // 预加载相邻页面
       this.preloadAdjacentPages();
@@ -663,12 +696,25 @@ Page({
     });
   },
 
-  // 跳转到指定页（用于目录跳转）
-  jumpToPage(pageNum) {
-    if (pageNum === this.data.currentPage) return;
+  // 跳转到章节
+  async jumpToChapter(e) {
+    const chapterId = e.currentTarget.dataset.chapterid;
+    if (chapterId === this.data.chapterId) return;
+    await this.initChapter(chapterId);
 
-    const direction = pageNum > this.data.currentPage ? "left" : "right";
-    this.goToPage(pageNum, direction);
+    this.setData({
+      chapterId: chapterId,
+      currentPage: 0,
+      showChapters: false
+    });
+    this.calculatePages();
+  },
+
+  toggleChapters() {
+    const showChapters = !this.data.showChapters;
+    this.setData({
+      showChapters,
+    });
   },
 
   // 跳转到下一章
@@ -679,8 +725,8 @@ Page({
       icon: "loading",
     });
     await this.initChapter(this.data.chapterId + 1);
-    await this.calculatePages();
-    await this.setData({
+    this.calculatePages();
+    this.setData({
       chapterId: this.data.chapterId + 1,
       currentPage: 0
     });
@@ -695,11 +741,11 @@ Page({
       icon: "loading",
     });
     await this.initChapter(this.data.chapterId - 1);
-    await this.calculatePages();
     this.setData({
       chapterId: this.data.chapterId - 1,
-      currentPage: this.data.totalPages - 1
+      currentPage: 0
     });
+    this.calculatePages();
     this.goToPage(0, "right");
   },
 
@@ -774,7 +820,6 @@ Page({
     this.initPageSize();
     setTimeout(() => {
       this.calculatePages();
-      this.updateDisplayPage();
     }, 300);
   },
 
@@ -784,9 +829,10 @@ Page({
       const readingProgress = {
         chapterId: this.data.chapterId,
         page: this.data.currentPage,
+        updateTime: Date.now()
       };
 
-      // await wx.setStorageSync('readingProgress', progress);
+
       // 调用云函数同步进度
       await wx.cloud.callFunction({
         name: "updateBookReadPos",
@@ -795,22 +841,29 @@ Page({
           readingProgress,
         },
       });
+      await wx.setStorageSync(`readingProgress_${this.bookId}`, readingProgress);
     } catch (error) {
       console.error("同步进度失败:", error);
     }
   },
 
-  restoreReadingProgress() {
+  async restoreReadingProgress() {
+    const remoteReadingProgress = this.data.book.readingProgress;
+    let localReadingProgress = {};
+    let readingProgress = {};
     try {
-      const progress = wx.getStorageSync("readingProgress");
-      if (progress && progress.chapterId === this.data.chapterId) {
-        this.goToPage(progress.page);
-      } else {
-        this.goToPage(0);
-      }
-    } catch (error) {
-      console.error(error);
-    }
+      localReadingProgress = (await wx.getStorageSync(`readingProgress_${this.bookId}`)) || {};
+    } catch (error) { console.error(error) }
+    // 判断远程阅读进度更新时间和本地阅读进度更新时间哪个最新
+    readingProgress = !localReadingProgress.updateTime ? remoteReadingProgress :
+      remoteReadingProgress.updateTime > localReadingProgress.updateTime ? remoteReadingProgress : localReadingProgress;
+    console.log('restoreReadingProgress', this.data.bookmark);
+
+    await this.setData({
+      chapterId: readingProgress.chapterId,
+      currentPage: readingProgress.page,
+      isMark: this.hasIsMark(readingProgress.page)
+    });
   },
 
   // UI操作
@@ -818,30 +871,46 @@ Page({
     this.setData({ showSettings: !this.data.showSettings });
   },
 
-  addBookmark() {
-    const bookmark = {
-      chapterId: this.data.chapterId,
-      chapterTitle: this.data.chapterTitle,
-      page: this.data.currentPage,
-      text: this.data.currentPageText.substring(0, 50) + "...",
-      timestamp: Date.now(),
-    };
-    console.log("bookmark", bookmark);
-    // 保存书签
-    let bookmarks = wx.getStorageSync("bookmarks") || [];
-    bookmarks.unshift(bookmark);
-    wx.setStorageSync("bookmarks", bookmarks.slice(0, 100)); // 限制数量
+  async addBookmark() {
+    const chapterId = this.data.chapterId;
+    let res;
+    if (!this.data.isMark) {
+      const bookmark = {
+        bookId: this.bookId,
+        title: this.data.book.title,
+        chapterId,
+        chapterTitle: this.data.chapterTitle,
+        page: this.data.currentPage,
+        text: this.data.currentPageText.substring(0, 50) + "...",
+        timestamp: Date.now(),
+      };
+      // 保存书签
+      res = await wx.cloud.callFunction({
+        name: "addBookmark",
+        data: bookmark
+      });
+    } else {
+      const bookmark = this.data.bookmark.find(item => item.page === this.data.currentPage);
+      res = await wx.cloud.callFunction({
+        name: "deleteBookmark",
+        data: {
+          bookmarkId: bookmark._id,
+        }
+      });
+    }
+    if (res?.result?.code !== 200) {
 
-    wx.showToast({
-      title: "添加书签成功",
-      icon: "success",
-    });
+    } else {
+      this.setData({ isMark: !this.data.isMark });
+      this.getBookmarks();
+      app.getBookmark();
+    }
   },
 
-  showChapterList() {
-    // wx.navigateTo({
-    //   url: `/pages/chapter-list/chapter-list?bookId=${this.data.bookId}`
-    // });
+  hasIsMark(page) {
+    const bookmark = this.data.bookmark.find(item => item.chapterId === this.data.chapterId);
+    const isMark = bookmark && page === bookmark.page;
+    return isMark;
   },
 
   onBack() {
@@ -851,8 +920,8 @@ Page({
   // 加载章节数据
   async loadChapterData(chapterId) {
     const chapters = this.data.chapters;
-    const start = chapterId === 0 ? 0 : chapters[chapterId].startPosition;
-    const end = chapters[chapterId].endPosition;
+    const start = chapterId === 1 ? 0 : chapters[chapterId - 1].startPosition;
+    const end = chapters[chapterId - 1].endPosition;
 
     let fullContent = "";
     const encoding = this.data.book.encoding;
@@ -869,20 +938,9 @@ Page({
     fullContent = decoder.decode(arr);
     // 截取指定范围的片段（考虑边界情况）
     const chunk = fullContent.substring(start, end);
-    console.log("chunk", chapterId, chunk);
+
     return chunk;
   },
 });
 
-// 防抖函数
-function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func.apply(this, args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-}
+

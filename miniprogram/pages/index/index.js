@@ -55,45 +55,42 @@ Page({
       });
     }
   },
-  async delete(data) {
-    const that = this;
-    const app = getApp();
+  delete(data) {
     try {
+      const that = this;
+      const app = getApp();
       const item = data.target.dataset.item;
-      await Dialog.confirm({
+      Dialog.confirm({
         title: "删除书籍",
         message: `确认删除 ${item.title} ?`,
+      }).then(() => {
+        that.setData({
+          loadingText: "删除中",
+          downloadLoading: true,
+        });
+        // 删除纪录
+        wx.cloud.callFunction({
+          name: "deleteBook",
+          data: {
+            bookId: item._id,
+          },
+        });
+        // 删除本地缓存
+        app.deleteLocalFile(item._id);
+      })
+      .catch(() => {})
+      .finally(async () => {
+        await that.getList();
+        this.setData({
+          downloadLoading: false,
+        });
       });
-      this.setData({
-        loadingText: "删除中",
-        downloadLoading: true,
-      });
-      // 删除DB
-      await wx.cloud.callFunction({
-        name: "deleteBook",
-        data: {
-          bookId: item._id,
-        },
-      });
-      // 删除云存储
-      await wx.cloud.deleteFile({
-        fileList: [item.fileUrl],
-      });
-      // 删除本地缓存
-      await app.deleteLocalFile(item._id);
-      // 删除章节标题缓存
-      await app.deleteStorageChapter(item._id);
     } catch (error) {
       console.error("error", error);
       wx.showToast({
         title: "删除失败，请稍后重试！",
         icon: "none",
         duration: 2000,
-      });
-    } finally {
-      await that.getList();
-      this.setData({
-        downloadLoading: false,
       });
     }
   },
@@ -103,7 +100,7 @@ Page({
         await this.download(data);
       }
       wx.navigateTo({
-        url: `/pages/bookdetail/index?id=${data.target.dataset.item._id}`,
+        url: `/pages/bookdetail/index?bookId=${data.target.dataset.item._id}`,
       });
     } catch (error) {
       console.error("error", error);
@@ -155,6 +152,7 @@ Page({
     }
   },
   async onLoad(options) {
+    console.log('onLoad index')
     await this.getList();
   },
 });

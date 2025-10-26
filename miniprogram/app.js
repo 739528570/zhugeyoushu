@@ -32,6 +32,8 @@ App({
     this.createBooksDir();
 
     this.getLocalFileList();
+
+    this.getBookmark();
   },
   // 更新网络状态到全局
   updateNetworkStatus() {
@@ -87,6 +89,13 @@ App({
       const fs = wx.getFileSystemManager();
       await fs.unlinkSync(`${booksPath}/${bookId}`);
       await this.getLocalFileList();
+
+      let chapters = (await wx.getStorageSync("chapters")) || {};
+      wx.removeStorage({ key: `readingProgress_${bookId}` });
+      if (chapters[bookId]) {
+        delete chapters[bookId];
+      }
+      await wx.setStorageSync("chapters", chapters);
     } catch (error) {
       console.error("删除缓存失败：", error);
     }
@@ -119,17 +128,6 @@ App({
       console.error("addStorageChapter", error);
     }
   },
-  async deleteStorageChapter(bookId) {
-    try {
-      let chapters = (await wx.getStorageSync("chapters")) || {};
-      if (chapters[bookId]) {
-        delete chapters[bookId];
-      }
-      await wx.setStorageSync("chapters", chapters);
-    } catch (error) {
-      console.log("deleteStorageChapter", error);
-    }
-  },
   async updateStorageBooks(books) {
     try {
       await wx.setStorageSync("books", books);
@@ -142,6 +140,17 @@ App({
       return (await wx.getStorageSync("books")) || [];
     } catch (error) {
       console.log("getStorageBooks", error);
+    }
+  },
+  async getBookmark() {
+    try {
+      const bookResult = await wx.cloud.callFunction({
+        name: "getBookmarks",
+        data: {},
+      });
+      await wx.setStorageSync("bookmarks", bookResult?.result || {});
+    } catch (error) {
+      console.error("getBookmark", error);
     }
   },
 });

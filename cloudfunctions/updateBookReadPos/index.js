@@ -34,7 +34,6 @@ exports.main = async function (params) {
       .update({
         data: {
           readingProgress,
-          updateTime: db.serverDate(),
         },
       });
 

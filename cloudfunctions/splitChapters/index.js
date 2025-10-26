@@ -89,26 +89,24 @@ function parseTxtToChapterColl(originalContent) {
       if (matchResult) {
         chapterSeq++;
 
-        let seqId, title;
+        let chapterId, title;
 
         if (pattern === CHAPTER_PATTERNS[5]) {
           // 英文章节特殊处理
-          seqId = parseInt(matchResult[2]) || chapterSeq;
-          title = matchResult[3] ? matchResult[3].trim() : `Chapter ${seqId}`;
+          chapterId = parseInt(matchResult[2]) || chapterSeq;
+          title = matchResult[3] ? matchResult[3].trim() : `Chapter ${chapterId}`;
         } else if (matchResult.length >= 3) {
           const numStr = matchResult[1] || matchResult[2];
-          seqId = chineseToNumber(numStr);
-          if (seqId === -1) seqId = chapterSeq;
-          title = matchResult[2] ? matchResult[2].trim() : `第${seqId}章`;
+          chapterId = chineseToNumber(numStr);
+          if (chapterId === -1) chapterId = chapterSeq;
+          title = matchResult[2] ? matchResult[2].trim() : `第${chapterId}章`;
         } else {
-          seqId = chapterSeq;
+          chapterId = chapterSeq;
           title = cleanLine;
         }
 
-        // 关键修复：使用包含前导空白的原始行起始位置
-        // 这样截取时能准确包含章节标题行的完整内容
         const chapterData = {
-          seqId,
+          chapterId,
           title,
           startPosition: lineInfo.startPos, // 包含前导空白的准确位置
           startLine: lineInfo.lineIndex,

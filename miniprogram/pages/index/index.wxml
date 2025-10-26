@@ -1,6 +1,6 @@
 <!--index.wxml-->
 <view>
-	<van-nav-bar title="TEST" placeholder>
+	<van-nav-bar title="书架" placeholder>
 		<upload bind:onOk="getList" slot="left">
 			<text slot="button">导入</text>
 		</upload>
